@@ -172,6 +172,19 @@ export function AdminSidebar() {
       ),
     },
     {
+      label: "Telegram Designer",
+      href: "/admin/settings/telegram",
+      permission: "manage:settings",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 9.25 20.25 7 18 7H16.5C15.67 7 15 6.33 15 5.5V5C15 3.34 13.66 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22Z" />
+          <circle cx="7.5" cy="10.5" r="1.5" fill="currentColor" />
+          <circle cx="11.5" cy="7.5" r="1.5" fill="currentColor" />
+          <circle cx="16.5" cy="11.5" r="1.5" fill="currentColor" />
+        </svg>
+      ),
+    },
+    {
       label: "Settings",
       href: "/admin/settings",
       permission: "manage:settings",
