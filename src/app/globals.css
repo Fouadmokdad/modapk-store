@@ -73,32 +73,111 @@
   --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* === Light theme === */
+/* === Light theme (Tailored Premium Slate-Blue Palette) === */
 [data-theme="light"] {
-  --color-bg-primary: 0 0% 97%;
-  --color-bg-secondary: 0 0% 94%;
+  --color-bg-primary: 210 20% 98%;
+  --color-bg-secondary: 210 20% 94%;
   --color-bg-card: 0 0% 100%;
   --color-bg-elevated: 0 0% 100%;
-  --color-bg-hover: 0 0% 96%;
-  --color-bg-input: 0 0% 95%;
+  --color-bg-hover: 210 20% 96%;
+  --color-bg-input: 210 20% 95%;
 
-  --color-text-primary: 222 15% 12%;
-  --color-text-secondary: 220 10% 40%;
-  --color-text-tertiary: 220 8% 55%;
-  --color-text-inverse: 0 0% 95%;
+  --color-text-primary: 222 20% 15%;
+  --color-text-secondary: 220 12% 42%;
+  --color-text-tertiary: 220 10% 58%;
+  --color-text-inverse: 210 20% 98%;
 
-  --color-border: 220 10% 88%;
-  --color-border-subtle: 220 10% 92%;
+  --color-border: 220 15% 89%;
+  --color-border-subtle: 220 15% 93%;
 
-  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.06);
-  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.08);
-  --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.1);
-  --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.12);
-  --shadow-glow: 0 0 40px hsl(142 71% 45% / 0.1);
-  --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.06), 0 0 0 1px hsl(220 10% 90%);
+  --shadow-sm: 0 1px 3px hsl(220 20% 10% / 0.04);
+  --shadow-md: 0 6px 16px -4px hsl(220 20% 10% / 0.06), 0 2px 6px -2px hsl(220 20% 10% / 0.04);
+  --shadow-lg: 0 16px 32px -8px hsl(220 20% 10% / 0.08), 0 4px 12px -2px hsl(220 20% 10% / 0.04);
+  --shadow-xl: 0 24px 48px -12px hsl(220 20% 10% / 0.1);
+  --shadow-glow: 0 0 40px hsl(142 71% 45% / 0.08);
+  --shadow-card: 0 2px 6px hsl(220 20% 10% / 0.04), 0 0 0 1px hsl(220 15% 90%);
 
-  --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 97%) 60%);
-  --gradient-card-shine: linear-gradient(135deg, hsl(0 0% 100% / 0.5), transparent 50%);
+  --gradient-hero: linear-gradient(180deg, hsl(210 30% 96%) 0%, hsl(210 20% 98%) 100%);
+  --gradient-card-shine: linear-gradient(135deg, hsl(0 0% 100% / 0.6), transparent 50%);
+}
+
+/* === Dynamic Light-Theme Compatibility Overrides === */
+[data-theme="light"] {
+  /* Intercept and translate dark-mode hardcoded typography */
+  .text-white,
+  .text-slate-100,
+  .text-slate-200,
+  .text-neutral-50,
+  .text-neutral-100,
+  .text-neutral-200 {
+    color: hsl(var(--color-text-primary)) !important;
+  }
+
+  .text-neutral-300,
+  .text-neutral-400,
+  .text-slate-300,
+  .text-slate-400 {
+    color: hsl(var(--color-text-secondary)) !important;
+  }
+
+  .text-neutral-500,
+  .text-slate-500 {
+    color: hsl(var(--color-text-tertiary)) !important;
+  }
+
+  /* Intercept and translate dark-mode backgrounds & borders using attribute string matching (escapes-free!) */
+  .bg-neutral-900,
+  .bg-neutral-950,
+  [class*="bg-white/5"],
+  [class*="bg-white/[0.03]"],
+  [class*="bg-white/[0.02]"],
+  [class*="bg-white/[0.04]"] {
+    background-color: hsl(var(--color-bg-secondary)) !important;
+  }
+
+  [class*="border-white/10"],
+  [class*="border-white/[0.06]"],
+  [class*="border-white/[0.04]"],
+  [class*="border-white/5"],
+  [class*="border-neutral-700/20"] {
+    border-color: hsl(var(--color-border)) !important;
+  }
+
+  /* Premium Card Glass translations */
+  .card-glass {
+    background: hsl(var(--color-bg-card) / 0.8) !important;
+    border-color: hsl(var(--color-border)) !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+
+  /* Hero Section and Banner gradients adjustments using attribute selectors */
+  [class*="from-neutral-900/40"] {
+    background-image: linear-gradient(to bottom, hsl(var(--color-bg-secondary) / 0.6) 0%, transparent 100%) !important;
+  }
+
+  [class*="from-emerald-500/10"] {
+    background-image: linear-gradient(to right, hsl(var(--color-accent) / 0.05), hsl(var(--color-purple) / 0.05)) !important;
+  }
+
+  /* Restore solid contrast & white text for intentional components (Buttons, Badges, etc.) */
+  .btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-download,
+  .btn-primary.text-white,
+  button[type="submit"],
+  .btn-download.text-white {
+    color: #ffffff !important;
+  }
+
+  /* Star and safe badges contrast enhancements */
+  .text-amber-400 {
+    color: hsl(38 92% 42%) !important; /* Premium rich gold */
+  }
+
+  .text-emerald-400 {
+    color: hsl(142 71% 38%) !important; /* Premium clean green */
+  }
 }
 
 /* =============================================================================

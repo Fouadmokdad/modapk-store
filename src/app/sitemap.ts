@@ -4,16 +4,23 @@ import { db } from "@/lib/db";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://modapkstore.com";
 
-  // Fetch all published apps to index their details page
-  const apps = await db.app.findMany({
-    where: { status: "PUBLISHED" },
-    select: { slug: true, updatedAt: true },
-  });
+  let apps: any[] = [];
+  let categories: any[] = [];
 
-  // Fetch all categories to index category listing pages
-  const categories = await db.category.findMany({
-    select: { slug: true },
-  });
+  try {
+    // Fetch all published apps to index their details page
+    apps = await db.app.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true },
+    });
+
+    // Fetch all categories to index category listing pages
+    categories = await db.category.findMany({
+      select: { slug: true },
+    });
+  } catch (error) {
+    console.error("Database offline during sitemap generation. Falling back to static URLs.", error);
+  }
 
   const staticUrls = [
     { url: `${siteUrl}/`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 1.0 },

@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Admin Apps List Page
+// Admin Apps List Page — Fully Defensive & Hardened Edition
 // =============================================================================
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
@@ -11,14 +11,44 @@ import { CustomSelect } from "@/components/ui/CustomSelect";
 
 type AppStatus = "DRAFT" | "PUBLISHED" | "HIDDEN";
 
+// Centralized Fallbacks
+const DEFAULT_APP_THEME = {
+  bg: 'from-purple-500/20 to-cyan-500/20',
+  color: '#8B5CF6',
+  border: '#A855F7'
+};
+
+const DEFAULT_STATUS_STYLE = {
+  bg: "hsl(0 0% 50% / 0.1)",
+  text: "hsl(0 0% 50%)",
+  label: "Unknown"
+};
+
 const statusColors: Record<AppStatus, { bg: string; text: string; label: string }> = {
   DRAFT: { bg: "hsl(38 92% 50% / 0.1)", text: "hsl(38 92% 50%)", label: "Draft" },
   PUBLISHED: { bg: "hsl(142 71% 45% / 0.1)", text: "hsl(142 71% 45%)", label: "Published" },
   HIDDEN: { bg: "hsl(0 0% 50% / 0.1)", text: "hsl(0 0% 50%)", label: "Hidden" },
 };
 
+// Data Normalizer
+function normalizeApp(app: any) {
+  if (!app) return null;
+  return {
+    ...app,
+    title: typeof app.title === "object" ? app.title : { en: String(app.title || "Untitled"), ar: String(app.title || "بدون عنوان") },
+    category: app.category ?? { name: { en: "Uncategorized", ar: "غير مصنف" }, slug: "uncategorized" },
+    tags: Array.isArray(app.tags) ? app.tags : [],
+    screenshots: Array.isArray(app.screenshots) ? app.screenshots : [],
+    versions: Array.isArray(app.versions) ? app.versions : [],
+    theme: app.theme ?? DEFAULT_APP_THEME,
+    downloadCount: typeof app.downloadCount === "number" ? app.downloadCount : 0,
+    status: app.status ?? "DRAFT",
+    type: app.type ?? "APP",
+  };
+}
+
 export default function AdminAppsPage() {
-  const [apps, setApps] = useState<AppCardData[]>([]);
+  const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("");
@@ -38,8 +68,11 @@ export default function AdminAppsPage() {
 
       const res = await fetch(`/api/apps?${params}`);
       const json = await res.json();
-      setApps(json.data || []);
-      setTotalPages(json.meta?.totalPages || 1);
+      const rawData = Array.isArray(json?.data) ? json.data : [];
+      const normalizedData = rawData.filter(Boolean).map(normalizeApp).filter(Boolean);
+
+      setApps(normalizedData);
+      setTotalPages(json?.meta?.totalPages || 1);
     } catch (error) {
       console.error("Failed to fetch apps:", error);
     } finally {
@@ -156,11 +189,11 @@ export default function AdminAppsPage() {
       >
         {loading ? (
           <div className="p-8 space-y-4">
-            {[...Array(5)].map((_, i) => (
+            {(Array.isArray(apps) ? [...Array(5)] : []).map((_, i) => (
               <div key={i} className="skeleton h-16 rounded-xl" />
             ))}
           </div>
-        ) : apps.length === 0 ? (
+        ) : (Array.isArray(apps) ? apps : []).length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-lg mb-2" style={{ color: "hsl(var(--color-text-secondary))" }}>No apps found</p>
             <Link href="/admin/apps/new" className="text-sm font-medium" style={{ color: "hsl(142 71% 45%)" }}>
@@ -169,20 +202,22 @@ export default function AdminAppsPage() {
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: "hsl(var(--color-border))" }}>
-            {apps.map((app) => {
-              const title = typeof app.title === "object" ? (app.title as Record<string, string>).en : String(app.title);
-              const status = (app as unknown as { status: AppStatus }).status || "DRAFT";
-              const statusStyle = statusColors[status];
+            {(Array.isArray(apps) ? apps : []).filter(Boolean).map((app) => {
+              const title = typeof app?.title === "object" 
+                ? (app.title?.en || app.title?.ar || "Untitled") 
+                : String(app?.title || "Untitled");
+              const status = (app?.status as AppStatus) || "DRAFT";
+              const statusStyle = statusColors[status] || DEFAULT_STATUS_STYLE;
 
               return (
                 <div
-                  key={app.id}
+                  key={app?.id || Math.random().toString()}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 transition-all first:rounded-t-2xl last:rounded-b-2xl hover:bg-[hsl(var(--color-bg-secondary)/0.4)]"
                 >
                   <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto">
                     {/* Icon */}
                     <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0" style={{ background: "hsl(var(--color-bg-tertiary))" }}>
-                      {app.iconUrl ? (
+                      {app?.iconUrl ? (
                         <Image src={app.iconUrl} alt={title} width={48} height={48} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-lg">📱</div>
@@ -197,21 +232,21 @@ export default function AdminAppsPage() {
                         </h3>
                         <span
                           className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase"
-                          style={{ background: statusStyle.bg, color: statusStyle.text }}
+                          style={{ background: statusStyle?.bg ?? DEFAULT_STATUS_STYLE.bg, color: statusStyle?.text ?? DEFAULT_STATUS_STYLE.text }}
                         >
-                          {statusStyle.label}
+                          {statusStyle?.label ?? DEFAULT_STATUS_STYLE.label}
                         </span>
                         <span
                           className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium"
                           style={{ background: "hsl(var(--color-bg-tertiary))", color: "hsl(var(--color-text-tertiary))" }}
                         >
-                          {app.type}
+                          {app?.type || "APP"}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-xs" style={{ color: "hsl(var(--color-text-tertiary))" }}>
-                        {app.category && <span>{(app.category.name as Record<string, string>).en}</span>}
-                        {app.versions?.[0] && <span>v{app.versions[0].versionName}</span>}
-                        <span>⬇ {app.downloadCount.toLocaleString()}</span>
+                        {app?.category && <span>{(app.category?.name?.en) || "Uncategorized"}</span>}
+                        {app?.versions?.[0] && <span>v{app.versions[0]?.versionName || "Latest"}</span>}
+                        <span>⬇ {(app?.downloadCount || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -221,7 +256,7 @@ export default function AdminAppsPage() {
                     {/* Status toggle */}
                     <CustomSelect
                       value={status}
-                      onChange={(val) => handleStatusChange(app.id, val as AppStatus)}
+                      onChange={(val) => handleStatusChange(app?.id, val as AppStatus)}
                       options={[
                         { value: "DRAFT", label: "Draft" },
                         { value: "PUBLISHED", label: "Publish" },
@@ -231,7 +266,7 @@ export default function AdminAppsPage() {
                     />
 
                     <Link
-                      href={`/admin/apps/${app.id}`}
+                      href={`/admin/apps/${app?.id || ""}`}
                       className="p-2 rounded-lg transition-all"
                       title="Edit"
                       style={{ color: "hsl(var(--color-text-secondary))" }}
@@ -245,7 +280,7 @@ export default function AdminAppsPage() {
                     </Link>
 
                     <button
-                      onClick={() => handleDelete(app.id, title)}
+                      onClick={() => handleDelete(app?.id, title)}
                       className="p-2 rounded-lg transition-all"
                       title="Delete"
                       style={{ color: "hsl(0 84% 60%)" }}

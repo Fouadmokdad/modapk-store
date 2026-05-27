@@ -159,6 +159,56 @@ export async function GET(request: NextRequest) {
       value: Math.round((count / Math.max(1, userAgents.length)) * 100),
     }));
 
+    // 7.5. Mobile App Analytics Additions (Bilingual safe, perfectly backwards compatible)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const downloadsLastWeek = await db.downloadEvent.findMany({
+      where: {
+        createdAt: { gte: sevenDaysAgo },
+      },
+      select: { createdAt: true },
+    });
+
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dailyCounts: Record<string, number> = {};
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const label = days[d.getDay()];
+      dailyCounts[label] = 0;
+    }
+
+    downloadsLastWeek.forEach(event => {
+      const label = days[event.createdAt.getDay()];
+      if (dailyCounts[label] !== undefined) {
+        dailyCounts[label]++;
+      }
+    });
+
+    const downloadsByDay = Object.entries(dailyCounts).map(([label, value]) => ({
+      label,
+      value,
+    }));
+
+    const recentAppsList = await db.app.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        iconUrl: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    const recentApps = recentAppsList.map(app => ({
+      id: app.id,
+      name: typeof app.title === "object" && app.title !== null ? (app.title as any).en || (app.title as any).ar || "" : "",
+      icon: app.iconUrl,
+      status: app.status,
+      createdAt: app.createdAt.toISOString(),
+    }));
+
     // 8. Yield Consolidated Response JSON (perfectly backwards-compatible)
     return NextResponse.json({
       data: {
@@ -176,6 +226,8 @@ export async function GET(request: NextRequest) {
         recentDownloads,
         browserBreakdown,
         osBreakdown,
+        downloadsByDay,
+        recentApps,
       },
     });
   } catch (error) {

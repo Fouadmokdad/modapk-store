@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { generateBaseMetadata, generateOrganizationJsonLd, generateWebSiteJsonLd } from "@/lib/seo";
 import { cookies } from "next/headers";
 import type { Locale } from "@/lib/i18n";
+import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
@@ -56,20 +57,6 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
-        {/* Global Organization & WebSite Searchbox Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(generateOrganizationJsonLd(enTitle, siteUrl)),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(generateWebSiteJsonLd(enTitle, siteUrl)),
-          }}
-        />
-
         {/* Preconnect to Google Fonts for Arabic font */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -79,7 +66,9 @@ export default async function RootLayout({
         />
         <meta name="theme-color" content="#141619" />
         {/* Inline script to prevent flash of wrong theme */}
-        <script
+        <Script
+          id="theme-prevent-flash"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -101,6 +90,22 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.variable} antialiased`}>
+        {/* Global Organization & WebSite Searchbox Structured Data rendered stable in body to prevent head hydration conflicts */}
+        <script
+          id="jsonld-organization"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateOrganizationJsonLd(enTitle, siteUrl)),
+          }}
+        />
+        <script
+          id="jsonld-website"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateWebSiteJsonLd(enTitle, siteUrl)),
+          }}
+        />
+
         <Providers locale={locale}>
           {children}
         </Providers>

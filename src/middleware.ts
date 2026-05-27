@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/api/") &&
     !pathname.startsWith("/api/auth") &&
+    !pathname.startsWith("/api/admin/auth/login") &&
     !pathname.startsWith("/api/apps") &&     // Public GET allowed
     !pathname.startsWith("/api/categories") && // Public GET allowed
     !pathname.startsWith("/api/tags") &&       // Public GET allowed

@@ -164,11 +164,13 @@ function Skeleton({ w = '100%', h = 16, r = 8 }: { w?: string | number; h?: numb
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: 'PENDING' | 'POSTED' | 'FAILED' }) {
-  const cfg = {
+  const badgeColors = {
     POSTED: { bg: 'rgba(16,185,129,0.15)', color: '#10b981', border: 'rgba(16,185,129,0.3)', dot: '#10b981' },
     FAILED: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'rgba(239,68,68,0.3)', dot: '#ef4444' },
     PENDING: { bg: 'rgba(234,179,8,0.15)', color: '#eab308', border: 'rgba(234,179,8,0.3)', dot: '#eab308' },
-  }[status];
+  };
+  const cfg = badgeColors[status] || { bg: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: 'rgba(255,255,255,0.1)', dot: '#94a3b8' };
+  
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -178,7 +180,7 @@ function StatusBadge({ status }: { status: 'PENDING' | 'POSTED' | 'FAILED' }) {
       border: `1px solid ${cfg.border}`,
     }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.dot, display: 'inline-block' }} />
-      {status}
+      {status || 'UNKNOWN'}
     </span>
   );
 }

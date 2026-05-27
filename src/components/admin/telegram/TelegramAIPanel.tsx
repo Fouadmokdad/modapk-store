@@ -5,7 +5,7 @@
 // Wired to /api/ai/rewrite-content
 // =============================================================================
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface Props {
   currentTemplate: string;
@@ -69,8 +69,18 @@ export function TelegramAIPanel({ currentTemplate, onApply }: Props) {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleGenerate = async (action: AIAction) => {
+    if (cooldown > 0 || loading) return;
+
     setSelectedAction(action);
     setLoading(true);
     setResult(null);
@@ -88,17 +98,20 @@ export function TelegramAIPanel({ currentTemplate, onApply }: Props) {
         body: JSON.stringify({ prompt, content: currentTemplate }),
       });
 
-      if (!res.ok) {
-        const json = await res.json();
-        throw new Error(json.error || "AI generation failed");
+      const json = await res.json();
+
+      if (!res.ok || json.success === false) {
+        throw new Error(json.message || json.error || "AI generation failed");
       }
 
-      const json = await res.json();
       const generated = json.result || json.content || json.text || json.data;
       if (!generated) throw new Error("No content returned from AI");
+
       setResult(generated);
+      setCooldown(4); // Start 4 second cooldown
     } catch (err: any) {
       setError(err.message || "Failed to generate content. Check your AI API configuration.");
+      setCooldown(4); // Also enforce cooldown on error to prevent spamming
     } finally {
       setLoading(false);
     }
@@ -171,11 +184,12 @@ export function TelegramAIPanel({ currentTemplate, onApply }: Props) {
           {ACTIONS.map((action) => {
             const isActive = selectedAction === action.id;
             const isLoading = loading && isActive;
+            const isCooldown = cooldown > 0;
             return (
               <button
                 key={action.id}
                 type="button"
-                disabled={loading}
+                disabled={loading || isCooldown}
                 onClick={() => handleGenerate(action.id)}
                 className="ai-glow"
                 style={{
@@ -184,8 +198,8 @@ export function TelegramAIPanel({ currentTemplate, onApply }: Props) {
                     ? "rgba(168,85,247,0.12)"
                     : "rgba(255,255,255,0.025)",
                   borderColor: isActive ? "rgba(168,85,247,0.4)" : "rgba(255,255,255,0.07)",
-                  opacity: loading && !isActive ? 0.5 : 1,
-                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading || isCooldown ? 0.5 : 1,
+                  cursor: loading || isCooldown ? "not-allowed" : "pointer",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -196,11 +210,11 @@ export function TelegramAIPanel({ currentTemplate, onApply }: Props) {
                       ))}
                     </div>
                   ) : (
-                    <span style={{ fontSize: 16 }}>{action.emoji}</span>
+                    <span style={{ fontSize: 16 }}>{isCooldown ? "⏳" : action.emoji}</span>
                   )}
                   <div style={{ textAlign: "left" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? "#c084fc" : "rgba(255,255,255,0.8)" }}>
-                      {action.label}
+                      {isCooldown ? `Cooldown (${cooldown}s)` : action.label}
                     </div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{action.desc}</div>
                   </div>

@@ -13,35 +13,75 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  try {
+    const { slug } = await params;
 
-  const category = await db.category.findUnique({
-    where: { slug },
-  });
+    const category = await db.category.findUnique({
+      where: { slug },
+    });
 
-  if (!category) return { title: "Category Not Found" };
+    if (!category) return { title: "Category Not Found" };
 
-  const cookieStore = await cookies();
-  const locale = (cookieStore.get("locale")?.value || "en") as "en" | "ar";
+    const cookieStore = await cookies();
+    const locale = (cookieStore.get("locale")?.value || "en") as "en" | "ar";
 
-  return generateCategoryMetadata(category as any, locale);
+    return generateCategoryMetadata(category as any, locale);
+  } catch (error) {
+    console.error("Database offline during metadata generation for category page:", error);
+    return { title: "Category Listings" };
+  }
 }
 
 export default async function CategoryDetailPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const category = await db.category.findUnique({
-    where: { slug },
-    include: {
-      _count: {
-        select: {
-          apps: {
-            where: { status: "PUBLISHED" },
+  let category: any = null;
+  let dbError = false;
+
+  try {
+    category = await db.category.findUnique({
+      where: { slug },
+      include: {
+        _count: {
+          select: {
+            apps: {
+              where: { status: "PUBLISHED" },
+            },
           },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Database offline during category detail query:", error);
+    dbError = true;
+  }
+
+  if (dbError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center" style={{ background: "#0a0b0e" }}>
+        <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-4xl mb-6 animate-pulse">
+          📡
+        </div>
+        <h1 className="text-3xl font-extrabold mb-4 tracking-tight" style={{ fontFamily: "Syne, sans-serif", color: "#00e5ff" }}>
+          Service Temporarily Offline
+        </h1>
+        <p className="text-sm max-w-md mb-8 leading-relaxed text-neutral-400" style={{ fontFamily: "DM Sans, sans-serif" }}>
+          Our app servers are currently having trouble connecting to the database. Please try reloading this page in a few moments.
+        </p>
+        <a
+          href=""
+          className="px-6 py-3 rounded-xl font-semibold text-sm cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] text-white"
+          style={{
+            background: "linear-gradient(135deg, #00e5ff, #7c3aed)",
+            boxShadow: "0 4px 20px rgba(0, 229, 255, 0.2)",
+            textDecoration: "none",
+          }}
+        >
+          🔄 Reload Page
+        </a>
+      </div>
+    );
+  }
 
   if (!category) notFound();
 
@@ -59,6 +99,7 @@ export default async function CategoryDetailPage({ params }: PageProps) {
   return (
     <>
       <script
+        id="jsonld-category-breadcrumbs"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
       />
