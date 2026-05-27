@@ -229,6 +229,13 @@ export default function AdminAppEditPage() {
   // Package name uniqueness check
   const [checkingPackage, setCheckingPackage] = useState(false);
   const [packageError, setPackageError] = useState("");
+  const [originalPackageName, setOriginalPackageName] = useState("");
+  const [toast, setToast] = useState<{ success: boolean; message: string } | null>(null);
+
+  const showToast = (success: boolean, message: string) => {
+    setToast({ success, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const handlePackageBlur = async () => {
     const pkg = form.packageName?.trim();
@@ -321,6 +328,7 @@ export default function AdminAppEditPage() {
       const json = await res.json();
       if (json.data) {
         const app = json.data;
+        setOriginalPackageName(app.packageName || "");
         setForm({
           slug: app.slug || "",
           packageName: app.packageName || "",
@@ -387,15 +395,26 @@ export default function AdminAppEditPage() {
       const url = isEdit ? `/api/apps/${appId}` : "/api/apps";
       const method = isEdit ? "PUT" : "POST";
 
+      // If editing and packageName did not change, omit it from update payload
+      const saveForm = { ...form };
+      if (isEdit && form.packageName === originalPackageName) {
+        delete (saveForm as any).packageName;
+      }
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(saveForm),
       });
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error || json.message || "Failed to save");
+        if (res.status === 409 && (json.error?.toLowerCase().includes("package name") || json.message?.toLowerCase().includes("package name"))) {
+          showToast(false, "Package name already exists. Please use another package name.");
+          setError("Package name already exists. Please use another package name.");
+        } else {
+          setError(json.error || json.message || "Failed to save");
+        }
         return;
       }
 
@@ -412,6 +431,7 @@ export default function AdminAppEditPage() {
         router.push(`/admin/apps/${json.data.id}`);
       } else {
         fetchApp();
+        showToast(true, "App saved successfully!");
       }
     } catch {
       setError("Network error");
@@ -599,6 +619,19 @@ export default function AdminAppEditPage() {
 
   return (
     <div className="max-w-4xl">
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 p-4 rounded-xl shadow-2xl text-xs font-bold transition-all border flex items-center gap-2 animate-slide-up ${
+            toast.success
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+              : "bg-red-500/10 text-red-400 border-red-500/30"
+          }`}
+        >
+          <span>{toast.success ? "✅" : "❌"}</span>
+          <span>{toast.message}</span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">

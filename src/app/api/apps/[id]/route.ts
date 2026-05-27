@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         },
       });
       if (pkgExists) {
-        return createApiError("Package name already used by another app", 409);
+        return createApiError("Package name already exists", 409);
       }
     }
 
@@ -160,6 +160,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return createApiResponse(app);
   } catch (error) {
     console.error('UPDATE_APP_ERROR', error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return createApiError("Package name already exists", 409);
+    }
 
     const prismaResponse = handlePrismaError(error);
     if (prismaResponse) return prismaResponse;

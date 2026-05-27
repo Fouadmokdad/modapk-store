@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
         where: { packageName: validated.packageName.trim() },
       });
       if (existingPkg) {
-        return createApiError("An app with this package name already exists", 409);
+        return createApiError("Package name already exists", 409);
       }
     }
 
@@ -230,6 +230,10 @@ export async function POST(request: NextRequest) {
     return createApiResponse(app, 201);
   } catch (error) {
     console.error("POST /api/apps error:", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return createApiError("Package name already exists", 409);
+    }
 
     const prismaResponse = handlePrismaError(error);
     if (prismaResponse) return prismaResponse;
