@@ -8,11 +8,16 @@ import { encode } from "next-auth/jwt";
 import { logActivity } from "@/lib/activity-logger";
 
 export async function POST(request: NextRequest) {
+  let emailLog: string | undefined;
   try {
     const body = await request.json();
     const email = body.email;
+    emailLog = email;
     const username = body.username;
     const password = body.password;
+
+    // Detailed Log: Start
+    console.error("MOBILE_AUTH_LOGIN_START", { email });
 
     const identifier = email || username;
 
@@ -33,38 +38,48 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // 1. Debug Log: Found user email
-    console.log("[DEBUG AUTH] Found user email:", admin ? admin.email : "null");
+    // Detailed Log: Admin found
+    console.error("MOBILE_AUTH_ADMIN_FOUND", !!admin);
 
     if (!admin) {
-      // 2. Debug Log: Password compare result (false since user not found)
-      console.log("[DEBUG AUTH] Password compare result: false (user not found)");
+      console.error("MOBILE_AUTH_ACTIVE", false);
+      console.error("MOBILE_AUTH_HAS_HASH", false);
+      console.error("MOBILE_AUTH_COMPARE", false);
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    const isValid = await bcrypt.compare(password, admin.passwordHash);
+    // Detailed Log: Active
+    console.error("MOBILE_AUTH_ACTIVE", admin.isActive);
+
+    // Detailed Log: Has Hash
+    console.error("MOBILE_AUTH_HAS_HASH", !!admin.passwordHash);
+
+    const compareResult = await bcrypt.compare(password, admin.passwordHash);
     
-    // 2. Debug Log: Password compare result
-    console.log("[DEBUG AUTH] Password compare result:", isValid);
+    // Detailed Log: Compare result
+    console.error("MOBILE_AUTH_COMPARE", compareResult);
 
-    if (!isValid) {
+    if (!compareResult) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
       );
     }
-
-    // 3. Debug Log: Account active status
-    console.log("[DEBUG AUTH] Account active status:", admin.isActive);
 
     if (!admin.isActive) {
       return NextResponse.json(
         { error: "Account disabled" },
         { status: 403 }
       );
+    }
+
+    // Resolve JWT secret with fallback
+    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT secret (JWT_SECRET or NEXTAUTH_SECRET) is missing in environment variables.");
     }
 
     // Generate JWT token compatible with NextAuth
@@ -79,12 +94,9 @@ export async function POST(request: NextRequest) {
 
     const accessToken = await encode({
       token: tokenPayload,
-      secret: process.env.NEXTAUTH_SECRET!,
+      secret: jwtSecret,
       maxAge: 24 * 60 * 60, // 24 hours
     });
-
-    // 4. Debug Log: Generated token result
-    console.log("[DEBUG AUTH] Generated token result:", accessToken ? "SUCCESS" : "FAILURE");
 
     // Update lastLogin timestamp in database
     await db.admin.update({
@@ -141,6 +153,10 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("POST /api/admin/auth/login error:", error);
+    // Ensure all intermediate detailed logs are printed if crash occurs early
+    if (emailLog !== undefined) {
+      console.error("[CRASH DETECTED DURING AUTH] email:", emailLog);
+    }
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }

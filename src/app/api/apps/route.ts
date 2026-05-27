@@ -182,12 +182,17 @@ export async function POST(request: NextRequest) {
       return createApiError("An app with this slug already exists", 409);
     }
 
+    // 8. Logging: debug details
+    console.log("[DEBUG APP CREATE] incoming packageName:", body.packageName);
+    console.log("[DEBUG APP CREATE] mode: CREATE");
+
     // Check package name uniqueness (excluding null/empty)
     if (validated.packageName && validated.packageName.trim() !== "") {
       const existingPkg = await db.app.findFirst({
         where: { packageName: validated.packageName.trim() },
       });
       if (existingPkg) {
+        console.log("[DEBUG APP CREATE] Duplicate packageName found: rejecting with 409");
         return createApiError("Package name already exists", 409);
       }
     }

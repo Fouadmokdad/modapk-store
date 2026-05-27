@@ -88,15 +88,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // 8. Logging: debug details
+    console.log("[DEBUG APP UPDATE] incoming appId:", id);
+    console.log("[DEBUG APP UPDATE] incoming packageName:", body.packageName);
+    console.log("[DEBUG APP UPDATE] original packageName:", existing.packageName);
+    console.log("[DEBUG APP UPDATE] mode: UPDATE");
+
+    // 2. Fallback to original packageName if empty in payload
+    const incomingPkgName = validated.packageName?.trim();
+    const finalPackageName = incomingPkgName && incomingPkgName !== "" 
+      ? incomingPkgName 
+      : existing.packageName;
+
+    validated.packageName = finalPackageName;
+
     // Check packageName uniqueness (excluding self)
-    if (validated.packageName && validated.packageName.trim() !== "" && validated.packageName !== existing.packageName) {
-      const pkgExists = await db.app.findFirst({
+    if (finalPackageName && finalPackageName.trim() !== "") {
+      const existingPkg = await db.app.findFirst({
         where: {
-          packageName: validated.packageName.trim(),
-          NOT: { id },
+          packageName: finalPackageName.trim(),
         },
       });
-      if (pkgExists) {
+      if (existingPkg && existingPkg.id !== id) {
+        console.log("[DEBUG APP UPDATE] Duplicate packageName found: rejecting with 409");
         return createApiError("Package name already exists", 409);
       }
     }
