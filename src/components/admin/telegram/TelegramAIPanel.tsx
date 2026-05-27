@@ -249,7 +249,7 @@ export function TelegramAIPanel({ currentTemplate, onApply }: Props) {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#c084fc" }}>AI Generated Result</div>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>
-                  {selectedAction?.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())} · {TONES.find(t => t.id === selectedTone)?.label} tone
+                  {selectedAction ? String(selectedAction).replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()) : ""} · {TONES.find(t => t.id === selectedTone)?.label} tone
                 </div>
               </div>
             </div>

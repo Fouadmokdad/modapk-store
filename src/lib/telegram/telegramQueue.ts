@@ -15,6 +15,13 @@ import { addJobToQueue } from "../queue/backgroundJobQueue";
  * Prepares and queues a Telegram post in the database (PENDING status)
  */
 export async function queueTelegramPost(appId: string, versionId?: string) {
+  let appName = `App ID: ${appId}`;
+  let versionName: string | null = null;
+  let text = "";
+  let photoUrl: string | null = null;
+  let reply_markup: any = null;
+  let currentApp: any = null;
+
   try {
     const settings = await getSiteSettings();
     if (!settings.telegramEnabled) {
@@ -22,21 +29,7 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
       return null;
     }
 
-    // Fetch Template Settings from DB
-    let templateSettings = await db.telegramSettings.findUnique({
-      where: { id: "global" },
-    });
-
-    if (!templateSettings) {
-      templateSettings = DEFAULT_TEMPLATE_SETTINGS as any;
-    }
-
-    if (!templateSettings?.enabled) {
-      console.log(`[TelegramQueue] Telegram template posting is disabled. Skipping.`);
-      return null;
-    }
-
-    // Fetch full app details
+    // Try fetching the app first to get a proper app name for logging if we fail later
     const app = await db.app.findUnique({
       where: { id: appId },
       include: {
@@ -46,14 +39,25 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
     });
 
     if (!app) {
-      console.error(`[TelegramQueue] App not found for ID: ${appId}`);
+      const errMsg = `App not found for ID: ${appId}`;
+      console.error(`[TelegramQueue] ${errMsg}`);
+      
+      // Since app doesn't exist, we log a general failure
+      await db.telegramLog.create({
+        data: {
+          appId: null,
+          appName: `Unknown App (ID: ${appId})`,
+          versionName: null,
+          status: "FAILED",
+          retryCount: 0,
+          errorDetails: errMsg,
+        }
+      });
       return null;
     }
 
-    if (app.status !== "PUBLISHED") {
-      console.log(`[TelegramQueue] App "${(app.title as any).en || app.slug}" is not published (Status: ${app.status}). Skipping post.`);
-      return null;
-    }
+    currentApp = app;
+    appName = (app.title as any).en || app.slug;
 
     // Fetch specific or latest version
     let version = null;
@@ -66,6 +70,61 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
         where: { appId },
         orderBy: { createdAt: "desc" },
       });
+    }
+    if (version) {
+      versionName = version.versionName || null;
+    }
+
+    // Fetch Template Settings from DB
+    let templateSettings = await db.telegramSettings.findUnique({
+      where: { id: "global" },
+    });
+
+    if (!templateSettings) {
+      try {
+        templateSettings = await db.telegramSettings.create({
+          data: {
+            id: "global",
+            ...DEFAULT_TEMPLATE_SETTINGS,
+            categoryEmojis: DEFAULT_TEMPLATE_SETTINGS.categoryEmojis as any,
+          },
+        });
+      } catch (createErr) {
+        templateSettings = DEFAULT_TEMPLATE_SETTINGS as any;
+      }
+    }
+
+    if (!templateSettings?.enabled) {
+      const errMsg = `Telegram template posting is disabled in Telegram Settings.`;
+      console.log(`[TelegramQueue] ${errMsg}`);
+      await db.telegramLog.create({
+        data: {
+          appId: app.id,
+          appName,
+          versionName,
+          status: "FAILED",
+          retryCount: 0,
+          errorDetails: errMsg,
+        }
+      });
+      return null;
+    }
+
+    if (app.status !== "PUBLISHED") {
+      const errMsg = `App "${appName}" is not published (Status: ${app.status}). Skipping post.`;
+      console.log(`[TelegramQueue] ${errMsg}`);
+      // If Telegram is enabled, create a log with status failed so admin knows why it wasn't sent
+      await db.telegramLog.create({
+        data: {
+          appId: app.id,
+          appName,
+          versionName,
+          status: "FAILED",
+          retryCount: 0,
+          errorDetails: errMsg,
+        }
+      });
+      return null;
     }
 
     // Map DB fields into TelegramPostData
@@ -92,12 +151,31 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
       publishedAt: app.publishedAt || undefined,
     };
 
-    // Format post text and reply buttons dynamically
-    const text = renderTelegramTemplate(postData, templateSettings as any);
-    const reply_markup = generateTelegramButtons(app.slug, templateSettings as any);
+    // Format post text and reply buttons dynamically with try-catch
+    try {
+      text = renderTelegramTemplate(postData, templateSettings as any);
+      reply_markup = generateTelegramButtons(app.slug, {
+        ...templateSettings,
+        siteUrl: settings.siteUrl,
+      } as any);
+    } catch (renderErr: any) {
+      const errMsg = `Template rendering failed: ${renderErr.message}`;
+      console.error(`[TelegramQueue] ${errMsg}`);
+      await db.telegramLog.create({
+        data: {
+          appId: app.id,
+          appName,
+          versionName,
+          status: "FAILED",
+          retryCount: 0,
+          errorDetails: errMsg,
+        }
+      });
+      return null;
+    }
 
     // Determine if photo should be attached
-    const photoUrl = settings.telegramIncludeImage
+    photoUrl = settings.telegramIncludeImage
       ? (app.iconUrl || app.headerImageUrl || null)
       : null;
 
@@ -105,8 +183,8 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
     const log = await db.telegramLog.create({
       data: {
         appId: app.id,
-        appName: (app.title as any).en || app.slug,
-        versionName: version?.versionName || null,
+        appName,
+        versionName,
         status: "PENDING",
         retryCount: 0,
         payload: {
@@ -123,8 +201,23 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
     await addJobToQueue("telegramQueue", "telegramPost", { logId: log.id });
 
     return log.id;
-  } catch (err) {
+  } catch (err: any) {
     console.error("[TelegramQueue] Failed to queue Telegram post:", err);
+    try {
+      await db.telegramLog.create({
+        data: {
+          appId: currentApp?.id || null,
+          appName,
+          versionName,
+          status: "FAILED",
+          retryCount: 0,
+          errorDetails: err.message || String(err),
+          payload: text ? ({ text, photoUrl, reply_markup } as any) : undefined,
+        }
+      });
+    } catch (dbErr) {
+      console.error("[TelegramQueue] Failed to create fail-log:", dbErr);
+    }
     return null;
   }
 }

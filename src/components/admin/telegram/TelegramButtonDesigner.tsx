@@ -68,7 +68,8 @@ export function TelegramButtonDesigner({
 
   const handleIconPick = (icon: string) => {
     // Prepend icon if no emoji at start, replace leading emoji otherwise
-    const stripped = currentText.replace(/^[\u{1F300}-\u{1FAD6}][\uFE0F]?\s*/u, "");
+    const textToReplace = currentText || "";
+    const stripped = textToReplace.replace(/^[\u{1F300}-\u{1FAD6}][\uFE0F]?\s*/u, "");
     setCurrentText(`${icon} ${stripped}`);
     setShowIconPicker(false);
   };

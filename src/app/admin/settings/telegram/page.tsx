@@ -650,7 +650,7 @@ export default function TelegramEnterprisePage() {
                       <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Preview</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {(settings.hashtagsTemplate
-                          ? settings.hashtagsTemplate
+                          ? String(settings.hashtagsTemplate)
                             .replace(/{title}/g, cleanHashtag(previewData.appTitleEn))
                             .replace(/{category}/g, cleanHashtag(previewData.categoryNameEn || ""))
                           : `#${cleanHashtag(previewData.appTitleEn)} #${cleanHashtag(previewData.categoryNameEn || "")} #MODAPK`

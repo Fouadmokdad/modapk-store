@@ -30,7 +30,8 @@ export async function sendTelegramMessage(options: SendTelegramOptions) {
 
   // Resolve relative URLs to absolute site URLs if needed
   if (photoToSend && photoToSend.startsWith("/")) {
-    photoToSend = `${settings.siteUrl.replace(/\/+$/, "")}${photoToSend}`;
+    const siteUrl = settings.siteUrl || "http://localhost:3000";
+    photoToSend = `${String(siteUrl).replace(/\/+$/, "")}${photoToSend}`;
   }
 
   // If the image URL is not public (e.g. localhost), sendPhoto will fail.

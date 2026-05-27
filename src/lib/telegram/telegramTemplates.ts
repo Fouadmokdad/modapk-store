@@ -98,7 +98,7 @@ export const DEFAULT_TEMPLATE_SETTINGS: TelegramTemplateSettings = {
  */
 export function escapeHTML(str: string | null | undefined): string {
   if (!str) return "";
-  return str
+  return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
@@ -107,10 +107,11 @@ export function escapeHTML(str: string | null | undefined): string {
 /**
  * Generate a clean, URL-safe and hashtag-safe camelCase string from text
  */
-export function cleanHashtag(text: string): string {
+export function cleanHashtag(text: string | null | undefined): string {
   if (!text) return "";
+  const str = String(text);
   // Strip non-alphanumeric characters, convert to PascalCase
-  const words = text
+  const words = str
     .replace(/[^\w\s-]/g, "")
     .split(/[\s_-]+/)
     .filter(Boolean);
@@ -130,9 +131,10 @@ export function formatTemplateDate(dateVal: Date | string | undefined | null, fo
   const d = typeof dateVal === "string" ? new Date(dateVal) : dateVal;
   if (isNaN(d.getTime())) return "";
 
-  if (format === "hidden") return "";
+  const fmt = format || "long";
+  if (fmt === "hidden") return "";
 
-  if (format === "relative") {
+  if (fmt === "relative") {
     const diffMs = Date.now() - d.getTime();
     const diffMins = Math.max(0, Math.floor(diffMs / 60000));
     const diffHours = Math.floor(diffMins / 60);
@@ -153,7 +155,7 @@ export function formatTemplateDate(dateVal: Date | string | undefined | null, fo
   const monthShort = monthShortNames[d.getMonth()];
   const year = d.getFullYear();
 
-  if (format === "short") {
+  if (fmt === "short") {
     // 27 May 2026
     return `${day} ${monthShort} ${year}`;
   }
@@ -166,25 +168,34 @@ export function formatTemplateDate(dateVal: Date | string | undefined | null, fo
  * Renders the Telegram post by replacing dynamic variables and cleaning up layout formatting
  */
 export function renderTelegramTemplate(
-  data: TelegramPostData,
-  settings: TelegramTemplateSettings
+  data: TelegramPostData | null | undefined,
+  settings: TelegramTemplateSettings | null | undefined
 ): string {
-  let text = settings.template;
+  const d = data || { appName: "unknown", appTitleEn: "Unknown", slug: "unknown" };
+  const s = settings || DEFAULT_TEMPLATE_SETTINGS;
+  
+  let text = s.template || DEFAULT_TEMPLATE;
+  if (typeof text !== "string") {
+    text = DEFAULT_TEMPLATE;
+  }
 
   // Resolve Title variable
   let titleVal = "";
-  if (settings.showTitle) {
-    const appTitle = data.appTitleAr
-      ? `${data.appTitleEn} (${data.appTitleAr})`
-      : data.appTitleEn;
+  if (s.showTitle ?? true) {
+    const appTitleEn = d.appTitleEn || "";
+    const appTitleAr = d.appTitleAr || "";
+    const appTitle = appTitleAr
+      ? `${appTitleEn} (${appTitleAr})`
+      : appTitleEn;
     
     const baseTitle = escapeHTML(appTitle);
+    const style = s.titleStyle || "premium";
     
-    if (settings.titleStyle === "uppercase") {
+    if (style === "uppercase") {
       titleVal = baseTitle.toUpperCase();
-    } else if (settings.titleStyle === "bold") {
+    } else if (style === "bold") {
       titleVal = `<b>${baseTitle}</b>`;
-    } else if (settings.titleStyle === "premium") {
+    } else if (style === "premium") {
       titleVal = `🔥 <b>${baseTitle.toUpperCase()}</b> 🔥`;
     } else {
       titleVal = baseTitle;
@@ -193,86 +204,94 @@ export function renderTelegramTemplate(
   text = text.replace(/{title}/g, titleVal);
 
   // Resolve Version variable
-  const versionVal = settings.showVersion && data.versionName ? escapeHTML(data.versionName) : "";
+  const versionVal = ((s.showVersion ?? true) && d.versionName) ? escapeHTML(d.versionName) : "";
   text = text.replace(/{version}/g, versionVal);
 
   // Resolve Size variable
-  const sizeVal = settings.showSize && data.apkSize ? escapeHTML(data.apkSize) : "";
+  const sizeVal = ((s.showSize ?? true) && d.apkSize) ? escapeHTML(d.apkSize) : "";
   text = text.replace(/{size}/g, sizeVal);
 
   // Resolve Android variable
-  const androidVal = settings.showAndroid && data.androidRequirement ? escapeHTML(data.androidRequirement) : "";
+  const androidVal = ((s.showAndroid ?? true) && d.androidRequirement) ? escapeHTML(d.androidRequirement) : "";
   text = text.replace(/{android}/g, androidVal);
 
   // Resolve Category variable
   let categoryVal = "";
-  if (settings.showCategory && data.categoryNameEn) {
+  if ((s.showCategory ?? true) && d.categoryNameEn) {
     // Resolve emoji
-    const emojis = typeof settings.categoryEmojis === "string" 
-      ? JSON.parse(settings.categoryEmojis) 
-      : settings.categoryEmojis || {};
-    const emoji = emojis[data.categoryNameEn] || "📂";
-    categoryVal = `${emoji} ${escapeHTML(data.categoryNameEn)}`;
+    let emojis = s.categoryEmojis;
+    if (typeof emojis === "string") {
+      try {
+        emojis = JSON.parse(emojis);
+      } catch (e) {
+        emojis = DEFAULT_TEMPLATE_SETTINGS.categoryEmojis;
+      }
+    }
+    if (!emojis || typeof emojis !== "object") {
+      emojis = DEFAULT_TEMPLATE_SETTINGS.categoryEmojis || {};
+    }
+    const emoji = emojis[d.categoryNameEn] || "📂";
+    categoryVal = `${emoji} ${escapeHTML(d.categoryNameEn)}`;
   }
   text = text.replace(/{category}/g, categoryVal);
 
   // Resolve Date variable
-  const dateVal = settings.showDate && data.publishedAt
-    ? formatTemplateDate(data.publishedAt, settings.dateFormat)
+  const dateVal = ((s.showDate ?? true) && d.publishedAt)
+    ? formatTemplateDate(d.publishedAt, s.dateFormat || "long")
     : "";
   text = text.replace(/{date}/g, dateVal);
 
   // Resolve MOD Features variable
   let modVal = "";
-  if (settings.showModFeatures && data.modFeatures && data.modFeatures.length > 0) {
-    const cleanFeatures = data.modFeatures.map(f => f.trim()).filter(Boolean);
+  if ((s.showModFeatures ?? true) && d.modFeatures && d.modFeatures.length > 0) {
+    const cleanFeatures = d.modFeatures.map(f => f ? String(f).trim() : "").filter(Boolean);
     modVal = cleanFeatures.map(feat => `• ${escapeHTML(feat)}`).join("\n");
   }
   text = text.replace(/{modFeatures}/g, modVal);
 
   // Resolve Changelog variable
   let changelogVal = "";
-  if (settings.showChangelog && (data.changelogEn || data.changelogAr)) {
-    const rawChangelog = data.changelogEn || data.changelogAr || "";
-    const lines = rawChangelog.split("\n").map(l => l.trim().replace(/^-\s*/, "")).filter(Boolean);
+  if ((s.showChangelog ?? false) && (d.changelogEn || d.changelogAr)) {
+    const rawChangelog = d.changelogEn || d.changelogAr || "";
+    const lines = String(rawChangelog).split("\n").map(l => l.trim().replace(/^-\s*/, "")).filter(Boolean);
     changelogVal = lines.map(line => `- ${escapeHTML(line)}`).join("\n");
   }
   text = text.replace(/{changelog}/g, changelogVal);
 
   // Resolve Developer variable
-  const developerVal = data.developer ? escapeHTML(data.developer) : "";
+  const developerVal = d.developer ? escapeHTML(d.developer) : "";
   text = text.replace(/{developer}/g, developerVal);
 
   // Resolve Downloads variable
-  const downloadsVal = data.downloadCount !== undefined ? formatNumber(data.downloadCount) : "0";
+  const downloadsVal = d.downloadCount !== undefined ? formatNumber(d.downloadCount) : "0";
   text = text.replace(/{downloads}/g, downloadsVal);
 
   // Resolve Footer variable
-  const footerVal = settings.showFooter && settings.footerText ? escapeHTML(settings.footerText) : "";
+  const footerVal = ((s.showFooter ?? true) && s.footerText) ? escapeHTML(s.footerText) : "";
   text = text.replace(/{footer}/g, footerVal);
 
   // Resolve Hashtags variable
   let hashtagsVal = "";
-  if (settings.showHashtags) {
-    if (settings.hashtagsTemplate) {
+  if (s.showHashtags ?? true) {
+    if (s.hashtagsTemplate) {
       // Custom hashtag template parsing
-      let hs = settings.hashtagsTemplate;
-      const cleanTitleHash = cleanHashtag(data.appTitleEn);
-      const cleanCatHash = cleanHashtag(data.categoryNameEn || "");
+      let hs = String(s.hashtagsTemplate);
+      const cleanTitleHash = cleanHashtag(d.appTitleEn);
+      const cleanCatHash = cleanHashtag(d.categoryNameEn || "");
       hs = hs.replace(/{title}/g, cleanTitleHash);
       hs = hs.replace(/{category}/g, cleanCatHash);
       hashtagsVal = hs;
     } else {
       // Auto hashtag generation
       const tagsSet = new Set<string>();
-      const appTag = cleanHashtag(data.appTitleEn);
+      const appTag = cleanHashtag(d.appTitleEn);
       if (appTag) tagsSet.add(`#${appTag}`);
-      if (data.categoryNameEn) {
-        const catTag = cleanHashtag(data.categoryNameEn);
+      if (d.categoryNameEn) {
+        const catTag = cleanHashtag(d.categoryNameEn);
         if (catTag) tagsSet.add(`#${catTag}`);
       }
-      if (data.tags && data.tags.length > 0) {
-        data.tags.forEach(t => {
+      if (d.tags && d.tags.length > 0) {
+        d.tags.forEach(t => {
           const ct = cleanHashtag(t);
           if (ct) tagsSet.add(`#${ct}`);
         });
@@ -313,19 +332,21 @@ export function renderTelegramTemplate(
 export function generateTelegramButtons(
   slug: string,
   settings: {
-    siteUrl: string;
-    downloadButtonText: string;
-    websiteButtonText: string;
-  }
+    siteUrl?: string;
+    downloadButtonText?: string;
+    websiteButtonText?: string;
+  } | null | undefined
 ) {
-  const downloadUrl = `${settings.siteUrl.replace(/\/+$/, "")}/download/${slug}`;
-  const websiteUrl = `${settings.siteUrl.replace(/\/+$/, "")}/apps/${slug}`;
+  const sUrl = settings?.siteUrl || "http://localhost:3000";
+  const safeSiteUrl = String(sUrl).replace(/\/+$/, "");
+  const downloadUrl = `${safeSiteUrl}/download/${slug || ""}`;
+  const websiteUrl = `${safeSiteUrl}/apps/${slug || ""}`;
 
   return {
     inline_keyboard: [
       [
-        { text: settings.downloadButtonText || "⬇️ DOWNLOAD MOD", url: downloadUrl },
-        { text: settings.websiteButtonText || "🌐 VISIT PAGE", url: websiteUrl }
+        { text: settings?.downloadButtonText || "⬇️ DOWNLOAD MOD", url: downloadUrl },
+        { text: settings?.websiteButtonText || "🌐 VISIT PAGE", url: websiteUrl }
       ]
     ]
   };
