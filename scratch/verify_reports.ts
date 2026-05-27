@@ -1,0 +1,104 @@
+import { db } from "../src/lib/db";
+import { reportSchema, reportStatusSchema } from "../src/lib/validators";
+
+async function main() {
+  console.log("=== STARTING REPORTS VERIFICATION PASS ===");
+
+  // 1. Get an existing published app to test with
+  const app = await db.app.findFirst({
+    where: { status: "PUBLISHED" },
+  });
+
+  if (!app) {
+    console.error("❌ No published apps found to test with. Run db seed first.");
+    process.exit(1);
+  }
+
+  console.log(`✅ Using published app: "${(app.title as any).en}" (ID: ${app.id})`);
+
+  // 2. Validate a broken link report submission with reportSchema
+  console.log("\n1. Testing Zod parsing for BROKEN_LINK report...");
+  const brokenLinkPayload = {
+    appId: app.id,
+    type: "BROKEN_LINK",
+    reporterName: "Test QA Tester",
+    reporterEmail: "qa@example.com",
+    message: "The primary mirror download link for this version returns a 404 error.",
+  };
+
+  const parsedBroken = reportSchema.parse(brokenLinkPayload);
+  console.log("✅ Zod successfully parsed BROKEN_LINK payload!");
+
+  // Create it in the DB
+  const report1 = await db.report.create({
+    data: parsedBroken,
+  });
+  console.log(`✅ Created broken link report in DB! ID: ${report1.id}`);
+
+  // 3. Validate a copyright report submission
+  console.log("\n2. Testing Zod parsing for COPYRIGHT report...");
+  const copyrightPayload = {
+    appId: app.id,
+    type: "COPYRIGHT",
+    reporterName: "IP Owner Representative",
+    reporterEmail: "ip-legal@brandowner.com",
+    message: "This modded version infringes on our registered trademarks and copyright assets.",
+  };
+
+  const parsedCopyright = reportSchema.parse(copyrightPayload);
+  console.log("✅ Zod successfully parsed COPYRIGHT payload!");
+
+  // Create it in the DB
+  const report2 = await db.report.create({
+    data: parsedCopyright,
+  });
+  console.log(`✅ Created copyright report in DB! ID: ${report2.id}`);
+
+  // 4. Confirm reports appear in the DB list
+  console.log("\n3. Testing Reports retrieval from DB...");
+  const reportsList = await db.report.findMany({
+    where: { appId: app.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  console.log(`✅ Retrieved ${reportsList.length} reports for app from DB!`);
+  if (reportsList.length < 2) {
+    throw new Error("Missing reports in database query!");
+  }
+
+  // 5. Test patching status and notes with reportStatusSchema
+  console.log("\n4. Testing Report Status PATCH (change to RESOLVED with notes)...");
+  const patchPayload = {
+    status: "RESOLVED",
+    adminNotes: "Investigated mirror link. Replaced link to mirror v2. Verified active.",
+  };
+
+  const parsedStatus = reportStatusSchema.parse(patchPayload);
+  console.log("✅ Zod successfully parsed PATCH payload!");
+
+  const updatedReport = await db.report.update({
+    where: { id: report1.id },
+    data: parsedStatus,
+  });
+
+  console.log(`✅ Updated report in DB! Status: ${updatedReport.status}`);
+  console.log(`✅ Admin notes saved: "${updatedReport.adminNotes}"`);
+
+  // Clean up test reports to keep database neat
+  await db.report.deleteMany({
+    where: {
+      id: { in: [report1.id, report2.id] },
+    },
+  });
+  console.log("\n🧹 Cleaned up verification reports from the database.");
+  console.log("=== REPORTS VERIFICATION PASS COMPLETED WITH 100% SUCCESS ===");
+}
+
+main()
+  .catch((err) => {
+    console.error("❌ Verification pass failed with error:", err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await db.$disconnect();
+  });

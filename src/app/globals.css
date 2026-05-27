@@ -1,0 +1,686 @@
+/* =============================================================================
+   MOD APK Store — Premium Design System
+   Inspired by APKPure / Uptodown / Modern APK Platforms
+   ============================================================================= */
+
+@import "tailwindcss";
+
+/* =============================================================================
+   CSS Custom Properties — Dark-First Premium Theme
+   ============================================================================= */
+:root {
+  /* === Core palette (dark mode default) === */
+  --color-bg-primary: 222 15% 8%;
+  --color-bg-secondary: 222 14% 11%;
+  --color-bg-card: 222 14% 13%;
+  --color-bg-elevated: 222 14% 16%;
+  --color-bg-hover: 222 14% 18%;
+  --color-bg-input: 222 14% 10%;
+
+  --color-text-primary: 0 0% 95%;
+  --color-text-secondary: 220 10% 65%;
+  --color-text-tertiary: 220 8% 45%;
+  --color-text-inverse: 222 15% 8%;
+
+  --color-border: 220 10% 18%;
+  --color-border-subtle: 220 10% 14%;
+
+  /* === Brand colors === */
+  --color-accent: 142 71% 45%;
+  --color-accent-hover: 142 71% 52%;
+  --color-accent-soft: 142 71% 45% / 0.12;
+
+  --color-purple: 262 83% 58%;
+  --color-purple-soft: 262 83% 58% / 0.12;
+
+  --color-warning: 38 92% 50%;
+  --color-danger: 0 84% 60%;
+  --color-info: 206 100% 50%;
+
+  /* === Gradients === */
+  --gradient-brand: linear-gradient(135deg, hsl(142 71% 45%), hsl(262 83% 58%));
+  --gradient-brand-hover: linear-gradient(135deg, hsl(142 71% 52%), hsl(262 83% 65%));
+  --gradient-subtle: linear-gradient(180deg, hsl(222 14% 13%), hsl(222 15% 8%));
+  --gradient-hero: linear-gradient(180deg, hsl(222 14% 13%) 0%, hsl(222 15% 8%) 60%);
+  --gradient-card-shine: linear-gradient(135deg, hsl(0 0% 100% / 0.03), transparent 50%);
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.2);
+  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.25);
+  --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.3);
+  --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.35);
+  --shadow-glow: 0 0 40px hsl(142 71% 45% / 0.15);
+  --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.15), 0 0 0 1px hsl(220 10% 18% / 0.5);
+
+  /* === Radius === */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* === Layout === */
+  --header-height: 64px;
+  --sidebar-width: 260px;
+  --container-max: 1280px;
+  --container-padding: 16px;
+
+  /* === Transitions === */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* === Light theme === */
+[data-theme="light"] {
+  --color-bg-primary: 0 0% 97%;
+  --color-bg-secondary: 0 0% 94%;
+  --color-bg-card: 0 0% 100%;
+  --color-bg-elevated: 0 0% 100%;
+  --color-bg-hover: 0 0% 96%;
+  --color-bg-input: 0 0% 95%;
+
+  --color-text-primary: 222 15% 12%;
+  --color-text-secondary: 220 10% 40%;
+  --color-text-tertiary: 220 8% 55%;
+  --color-text-inverse: 0 0% 95%;
+
+  --color-border: 220 10% 88%;
+  --color-border-subtle: 220 10% 92%;
+
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.06);
+  --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.08);
+  --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.12);
+  --shadow-glow: 0 0 40px hsl(142 71% 45% / 0.1);
+  --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.06), 0 0 0 1px hsl(220 10% 90%);
+
+  --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 97%) 60%);
+  --gradient-card-shine: linear-gradient(135deg, hsl(0 0% 100% / 0.5), transparent 50%);
+}
+
+/* =============================================================================
+   Base Styles
+   ============================================================================= */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--color-bg-primary));
+  color: hsl(var(--color-text-primary));
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+[dir="rtl"] body {
+  font-family: "Tajawal", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+::selection {
+  background: hsl(var(--color-accent) / 0.3);
+  color: hsl(var(--color-text-primary));
+}
+
+/* =============================================================================
+   Scrollbar
+   ============================================================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--color-text-tertiary) / 0.3);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--color-text-tertiary) / 0.5);
+}
+
+/* Hide scrollbar for carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =============================================================================
+   Container
+   ============================================================================= */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-padding);
+}
+
+@media (min-width: 640px) {
+  :root { --container-padding: 24px; }
+}
+@media (min-width: 1024px) {
+  :root { --container-padding: 32px; }
+}
+
+/* =============================================================================
+   Card System
+   ============================================================================= */
+.card {
+  background: hsl(var(--color-bg-card));
+  border: 1px solid hsl(var(--color-border));
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-card-shine);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card:hover {
+  border-color: hsl(var(--color-border) / 0.8);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card-flat {
+  background: hsl(var(--color-bg-card));
+  border: 1px solid hsl(var(--color-border));
+  border-radius: var(--radius-xl);
+}
+
+.card-glass {
+  background: hsl(var(--color-bg-card) / 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsl(var(--color-border) / 0.5);
+  border-radius: var(--radius-xl);
+}
+
+/* =============================================================================
+   App Card (horizontal compact + grid)
+   ============================================================================= */
+.app-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-card:hover {
+  background: hsl(var(--color-bg-hover));
+}
+
+.app-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: hsl(var(--color-bg-secondary));
+}
+
+.app-card-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Grid app card (larger) */
+.app-card-grid {
+  display: flex;
+  flex-direction: column;
+  background: hsl(var(--color-bg-card));
+  border: 1px solid hsl(var(--color-border));
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: all var(--transition-base);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+}
+
+.app-card-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-card-shine);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.app-card-grid:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: hsl(var(--color-accent) / 0.3);
+}
+
+.app-card-grid-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.app-card-grid-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =============================================================================
+   Buttons
+   ============================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--gradient-brand);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background: var(--gradient-brand-hover);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: hsl(var(--color-bg-elevated));
+  color: hsl(var(--color-text-primary));
+  border: 1px solid hsl(var(--color-border));
+}
+
+.btn-secondary:hover {
+  background: hsl(var(--color-bg-hover));
+  border-color: hsl(var(--color-text-tertiary) / 0.3);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: hsl(var(--color-text-secondary));
+  padding: 8px 12px;
+}
+
+.btn-ghost:hover {
+  background: hsl(var(--color-bg-hover));
+  color: hsl(var(--color-text-primary));
+}
+
+.btn-download {
+  background: var(--gradient-brand);
+  color: white;
+  padding: 14px 28px;
+  border-radius: var(--radius-lg);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.btn-download:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-lg), 0 0 60px hsl(142 71% 45% / 0.2);
+}
+
+/* =============================================================================
+   Section Headers
+   ============================================================================= */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: hsl(var(--color-text-primary));
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 640px) {
+  .section-title {
+    font-size: 24px;
+  }
+}
+
+.section-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(var(--color-accent));
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color var(--transition-fast);
+}
+
+.section-link:hover {
+  color: hsl(var(--color-accent-hover));
+}
+
+/* =============================================================================
+   Horizontal Scroll Carousel
+   ============================================================================= */
+.carousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.carousel > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .carousel { gap: 16px; }
+}
+
+/* =============================================================================
+   Category Chips
+   ============================================================================= */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  background: hsl(var(--color-bg-elevated));
+  color: hsl(var(--color-text-secondary));
+  border: 1px solid hsl(var(--color-border));
+  transition: all var(--transition-base);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.chip:hover {
+  background: hsl(var(--color-bg-hover));
+  color: hsl(var(--color-text-primary));
+  border-color: hsl(var(--color-text-tertiary) / 0.3);
+}
+
+.chip-active {
+  background: hsl(var(--color-accent-soft));
+  color: hsl(var(--color-accent));
+  border-color: hsl(var(--color-accent) / 0.3);
+}
+
+/* =============================================================================
+   Badge / Status
+   ============================================================================= */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-mod {
+  background: hsl(var(--color-accent-soft));
+  color: hsl(var(--color-accent));
+}
+
+.badge-original {
+  background: hsl(206 100% 50% / 0.12);
+  color: hsl(206 100% 50%);
+}
+
+.badge-beta {
+  background: hsl(38 92% 50% / 0.12);
+  color: hsl(38 92% 50%);
+}
+
+.badge-premium {
+  background: hsl(var(--color-purple-soft));
+  color: hsl(var(--color-purple));
+}
+
+/* =============================================================================
+   Rating Stars
+   ============================================================================= */
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: hsl(38 92% 50%);
+  font-size: 12px;
+}
+
+/* =============================================================================
+   Animations
+   ============================================================================= */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(142 71% 45% / 0.4); }
+  50% { box-shadow: 0 0 20px 4px hsl(142 71% 45% / 0.15); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.fade-in { animation: fadeIn 0.4s ease-out both; }
+.fade-in-up { animation: fadeInUp 0.5s ease-out both; }
+.fade-in-scale { animation: fadeInScale 0.4s ease-out both; }
+.slide-in-right { animation: slideInRight 0.4s ease-out both; }
+
+/* Stagger children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--color-bg-secondary)) 25%,
+    hsl(var(--color-bg-elevated)) 50%,
+    hsl(var(--color-bg-secondary)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Glow pulse */
+.glow-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* =============================================================================
+   Input System
+   ============================================================================= */
+.input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: hsl(var(--color-bg-input));
+  color: hsl(var(--color-text-primary));
+  border: 1px solid hsl(var(--color-border));
+  outline: none;
+  transition: all var(--transition-base);
+}
+
+.input::placeholder {
+  color: hsl(var(--color-text-tertiary));
+}
+
+.input:focus {
+  border-color: hsl(var(--color-accent));
+  box-shadow: 0 0 0 3px hsl(var(--color-accent) / 0.1);
+}
+
+/* =============================================================================
+   Search Bar (Hero)
+   ============================================================================= */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: hsl(var(--color-bg-card));
+  border: 1px solid hsl(var(--color-border));
+  border-radius: var(--radius-xl);
+  padding: 6px 6px 6px 20px;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.search-bar:focus-within {
+  border-color: hsl(var(--color-accent));
+  box-shadow: var(--shadow-lg), 0 0 0 3px hsl(var(--color-accent) / 0.1);
+}
+
+/* =============================================================================
+   Hero Section
+   ============================================================================= */
+.hero {
+  position: relative;
+  padding: 48px 0 32px;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse, hsl(142 71% 45% / 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, hsl(262 83% 58% / 0.06), transparent 70%);
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .hero { padding: 64px 0 48px; }
+}
+
+/* =============================================================================
+   RTL Support
+   ============================================================================= */
+[dir="rtl"] .carousel {
+  direction: rtl;
+}
+
+[dir="rtl"] .section-link svg {
+  transform: scaleX(-1);
+}
+
+/* =============================================================================
+   Utility Classes
+   ============================================================================= */
+.line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+
+.text-gradient {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-hero {
+  background: var(--gradient-hero);
+}

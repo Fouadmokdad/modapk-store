@@ -1,0 +1,388 @@
+// =============================================================================
+// MOD APK Store — Prisma Schema (MVP)
+// =============================================================================
+// Bilingual fields use Json type: { "en": "...", "ar": "..." }
+// External download links only — no APK file hosting
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// Authentication
+// =============================================================================
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// =============================================================================
+// Taxonomy
+// =============================================================================
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        Json     // { en: "Tools", ar: "أدوات" }
+  description Json?    // { en: "...", ar: "..." }
+  iconUrl     String?
+  type        AppType  @default(APP)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  apps App[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      Json     // { en: "Premium", ar: "مميز" }
+  createdAt DateTime @default(now())
+
+  apps AppTag[]
+
+  @@map("tags")
+}
+
+// =============================================================================
+// Core: App
+// =============================================================================
+
+model App {
+  id                   String    @id @default(cuid())
+  slug                 String    @unique
+  packageName          String?   @unique
+  status               AppStatus @default(DRAFT)
+  type                 AppType   @default(APP)
+  releaseType          ReleaseType @default(MOD)
+
+  // --- Bilingual content (JSON: { en, ar }) ---
+  title                Json      // { en: "WhatsApp MOD", ar: "واتساب مود" }
+  shortDescription     Json?
+  description          Json?
+
+  // --- Media ---
+  iconUrl              String?
+  headerImageUrl       String?
+
+  // --- Developer info ---
+  developer            String?
+  developerUrl         String?
+  originalPlayStoreUrl String?
+
+  // --- Importer Source Audit Trail ---
+  importedSourceUrl    String?
+  importedSourceName   String?
+  importMetadata       Json?     // { importedAt: string, importerVersion: string, parserUsed: string, extractionWarnings: string[] }
+
+  // --- Metadata ---
+  categoryId           String?
+  category             Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  rating               Float?
+  contentRating        String?
+  installs             String?
+
+  // --- Flags ---
+  isFeatured           Boolean   @default(false)
+  isTrending           Boolean   @default(false)
+
+  // --- MOD-specific (JSON: { en, ar }) ---
+  modFeatures          Json?     // [{ en: "Unlimited coins", ar: "عملات غير محدودة" }]
+  safetyDisclaimer     Json?
+  antiBanWarning       Json?
+  installationGuide    Json?
+  virusScanHash        String?
+  virusScanUrl         String?
+
+  // --- Counters ---
+  viewCount            Int       @default(0)
+  downloadCount        Int       @default(0)
+
+  // --- Timestamps ---
+  publishedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // --- Relations ---
+  versions       AppVersion[]
+  screenshots    Screenshot[]
+  tags           AppTag[]
+  reports        Report[]
+  pageViews      PageView[]
+  downloadEvents DownloadEvent[]
+  downloadMirrors DownloadMirror[]
+
+  @@index([status])
+  @@index([type])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isTrending])
+  @@index([publishedAt])
+  @@index([downloadCount])
+  @@index([viewCount])
+  @@map("apps")
+}
+
+// =============================================================================
+// Junction: App ↔ Tag
+// =============================================================================
+
+model AppTag {
+  appId String
+  tagId String
+  app   App @relation(fields: [appId], references: [id], onDelete: Cascade)
+  tag   Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([appId, tagId])
+  @@map("app_tags")
+}
+
+// =============================================================================
+// Versions & Download Links
+// =============================================================================
+
+model AppVersion {
+  id                 String           @id @default(cuid())
+  appId              String
+  app                App              @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  versionName        String           // e.g. "2.24.1"
+  versionCode        String?          // e.g. "452301"
+  size               String?          // e.g. "58 MB" (Deprecated)
+  minAndroid         String?          // e.g. "5.0+" (Deprecated)
+  apkSize            String?          // e.g. "58 MB"
+  androidRequirement String?          // e.g. "5.0+"
+  changelog          Json?            // { en: "...", ar: "..." }
+  modInfo            Json?            // { en: "MOD details...", ar: "..." }
+  isLatest           Boolean          @default(false)
+  releasedAt         DateTime?
+  createdAt          DateTime         @default(now())
+
+  downloadLinks   DownloadLink[]
+  downloadMirrors DownloadMirror[]
+  downloadEvents  DownloadEvent[]
+
+  @@index([appId])
+  @@index([isLatest])
+  @@map("app_versions")
+}
+
+model DownloadLink {
+  id        String     @id @default(cuid())
+  versionId String
+  version   AppVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  label     String     // e.g. "Mirror 1", "Google Drive", "MediaFire"
+  url       String     // External URL
+  isPrimary Boolean    @default(false)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+
+  downloadEvents DownloadEvent[]
+
+  @@index([versionId])
+  @@map("download_links")
+}
+
+// =============================================================================
+// Media
+// =============================================================================
+
+model Screenshot {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([appId])
+  @@map("screenshots")
+}
+
+// =============================================================================
+// Reports
+// =============================================================================
+
+model Report {
+  id            String       @id @default(cuid())
+  appId         String
+  app           App          @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  type          ReportType
+  reporterEmail String?
+  reporterName  String?
+  message       String
+  status        ReportStatus @default(PENDING)
+  adminNotes    String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([appId])
+  @@index([status])
+  @@index([type])
+  @@map("reports")
+}
+
+// =============================================================================
+// Analytics
+// =============================================================================
+
+model PageView {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  ip        String?
+  userAgent String?
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  @@index([appId])
+  @@index([createdAt])
+  @@map("page_views")
+}
+
+model DownloadEvent {
+  id        String      @id @default(cuid())
+  appId     String
+  app       App         @relation(fields: [appId], references: [id], onDelete: Cascade)
+  versionId String?
+  version   AppVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  linkId    String?
+  link      DownloadLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
+  mirrorId  String?
+  mirror    DownloadMirror? @relation(fields: [mirrorId], references: [id], onDelete: SetNull)
+
+  ip        String?     // Deprecated, use ipAddress
+  userAgent String?
+  
+  ipAddress String?     // Client IP Address
+  country   String?     // Client Country Code (from Cloudflare header or geoip)
+  createdAt DateTime    @default(now())
+
+  @@index([appId])
+  @@index([createdAt])
+  @@map("download_events")
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+enum AppStatus {
+  DRAFT
+  DRAFT_INCOMPLETE
+  PUBLISHED
+  HIDDEN
+}
+
+enum AppType {
+  APP
+  GAME
+}
+
+enum ReportType {
+  BROKEN_LINK
+  COPYRIGHT
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum ReleaseType {
+  ORIGINAL
+  MOD
+  BETA
+}
+
+// =============================================================================
+// Settings
+// =============================================================================
+
+model Setting {
+  id               String   @id @default("global")
+  
+  // General & SEO
+  siteTitle        Json     // { en: "ModAPK Store", ar: "متجر ModAPK" }
+  siteDescription  Json     // { en: "...", ar: "..." }
+  contactEmail     String   @default("contact@modapkstore.com")
+  siteUrl          String   @default("http://localhost:3000")
+
+  // Downloads
+  downloadCountdown Int    @default(10)
+
+  // Socials
+  socialLinks      Json     // { twitter: "...", facebook: "...", github: "..." }
+
+  // Legal
+  disclaimer       Json     // { en: "...", ar: "..." }
+  footerText       Json     // { en: "...", ar: "..." }
+
+  // Homepage toggles
+  homepageFeatured Json     // { showTrending: true, showLatest: true, showCategories: true }
+
+  // Future Scalability
+  maintenanceMode  Boolean  @default(false)
+  adsSettings      Json?    // { showBanner: true, showNative: true }
+  featureFlags     Json?    // { reportsEnabled: true, playStoreFetchEnabled: true }
+
+  updatedAt        DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// =============================================================================
+// Download Mirror
+// =============================================================================
+
+model DownloadMirror {
+  id              String         @id @default(cuid())
+  versionId       String
+  version         AppVersion     @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  
+  hostName        String         // e.g. "Mediafire", "Mega"
+  downloadUrl     String         // External URL
+  redirectEnabled Boolean        @default(true)
+  priority        Int            @default(0)
+  healthStatus    String         @default("HEALTHY") // HEALTHY, DEAD, SLOW, REDIRECT_BROKEN, REMOVED
+  clickCount      Int            @default(0)
+  createdAt       DateTime       @default(now())
+  
+  // Backward compatibility fields:
+  host            String?        // Legacy field
+  url             String?        // Legacy field
+  health          String?        @default("HEALTHY") // Legacy field
+  appId           String?
+  app             App?           @relation(fields: [appId], references: [id], onDelete: Cascade)
+  lastCheckedAt   DateTime?      @default(now())
+  updatedAt       DateTime?      @updatedAt
+
+  downloadEvents  DownloadEvent[]
+
+  @@index([versionId])
+  @@index([appId])
+  @@map("download_mirrors")
+}
+
