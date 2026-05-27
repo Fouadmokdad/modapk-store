@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface Report {
   id: string;
@@ -117,32 +118,30 @@ export default function AdminReportsPage() {
       <div className="card-flat p-4 flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2.5">
           {/* Status filter */}
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input text-xs py-2 px-3.5 w-40 rounded-xl"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending ⏳</option>
-              <option value="REVIEWED">Reviewed 🔍</option>
-              <option value="RESOLVED">Resolved ✅</option>
-              <option value="DISMISSED">Dismissed 📁</option>
-            </select>
-          </div>
+          <CustomSelect
+            value={statusFilter}
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              { value: "", label: "All Statuses" },
+              { value: "PENDING", label: "Pending ⏳" },
+              { value: "REVIEWED", label: "Reviewed 🔍" },
+              { value: "RESOLVED", label: "Resolved ✅" },
+              { value: "DISMISSED", label: "Dismissed 📁" },
+            ]}
+            className="w-40"
+          />
 
           {/* Type filter */}
-          <div>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="input text-xs py-2 px-3.5 w-40 rounded-xl"
-            >
-              <option value="">All Types</option>
-              <option value="BROKEN_LINK">Broken Link 🔗</option>
-              <option value="COPYRIGHT">Copyright / DMCA 🛡️</option>
-            </select>
-          </div>
+          <CustomSelect
+            value={typeFilter}
+            onChange={(val) => setTypeFilter(val)}
+            options={[
+              { value: "", label: "All Types" },
+              { value: "BROKEN_LINK", label: "Broken Link 🔗" },
+              { value: "COPYRIGHT", label: "Copyright / DMCA 🛡️" },
+            ]}
+            className="w-44"
+          />
         </div>
 
         <button

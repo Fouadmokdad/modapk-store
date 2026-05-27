@@ -7,6 +7,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { AppCardData } from "@/types/app";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 type AppStatus = "DRAFT" | "PUBLISHED" | "HIDDEN";
 
@@ -124,36 +125,28 @@ export default function AdminAppsPage() {
           }}
         />
         {/* Status filter */}
-        <select
+        <CustomSelect
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-4 py-2.5 rounded-xl text-sm outline-none cursor-pointer"
-          style={{
-            background: "hsl(var(--color-bg-secondary))",
-            color: "hsl(var(--color-text-primary))",
-            border: "1px solid hsl(var(--color-border))",
-          }}
-        >
-          <option value="">All Status</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="HIDDEN">Hidden</option>
-        </select>
+          onChange={(val) => { setStatusFilter(val); setPage(1); }}
+          options={[
+            { value: "", label: "All Status" },
+            { value: "DRAFT", label: "Draft" },
+            { value: "PUBLISHED", label: "Published" },
+            { value: "HIDDEN", label: "Hidden" },
+          ]}
+          className="w-full sm:w-40"
+        />
         {/* Type filter */}
-        <select
+        <CustomSelect
           value={typeFilter}
-          onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-          className="px-4 py-2.5 rounded-xl text-sm outline-none cursor-pointer"
-          style={{
-            background: "hsl(var(--color-bg-secondary))",
-            color: "hsl(var(--color-text-primary))",
-            border: "1px solid hsl(var(--color-border))",
-          }}
-        >
-          <option value="">All Types</option>
-          <option value="APP">Apps</option>
-          <option value="GAME">Games</option>
-        </select>
+          onChange={(val) => { setTypeFilter(val); setPage(1); }}
+          options={[
+            { value: "", label: "All Types" },
+            { value: "APP", label: "Apps" },
+            { value: "GAME", label: "Games" },
+          ]}
+          className="w-full sm:w-40"
+        />
       </div>
 
       {/* Apps Table */}
@@ -229,20 +222,16 @@ export default function AdminAppsPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t border-neutral-800/40 pt-3 sm:border-0 sm:pt-0">
                     {/* Status toggle */}
-                    <select
+                    <CustomSelect
                       value={status}
-                      onChange={(e) => handleStatusChange(app.id, e.target.value as AppStatus)}
-                      className="px-2 py-1.5 rounded-lg text-xs outline-none cursor-pointer"
-                      style={{
-                        background: "hsl(var(--color-bg-secondary))",
-                        color: "hsl(var(--color-text-secondary))",
-                        border: "1px solid hsl(var(--color-border))",
-                      }}
-                    >
-                      <option value="DRAFT">Draft</option>
-                      <option value="PUBLISHED">Publish</option>
-                      <option value="HIDDEN">Hide</option>
-                    </select>
+                      onChange={(val) => handleStatusChange(app.id, val as AppStatus)}
+                      options={[
+                        { value: "DRAFT", label: "Draft" },
+                        { value: "PUBLISHED", label: "Publish" },
+                        { value: "HIDDEN", label: "Hide" },
+                      ]}
+                      className="w-28"
+                    />
 
                     <Link
                       href={`/admin/apps/${app.id}`}

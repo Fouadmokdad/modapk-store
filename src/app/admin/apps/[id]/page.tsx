@@ -9,6 +9,7 @@ import Image from "next/image";
 import { slugify } from "@/lib/utils";
 import type { CategoryData } from "@/types/app";
 import { VersionsManager } from "@/components/admin/VersionsManager";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 type AiAction = "rewrite" | "rewrite-short" | "rewrite-full" | "translate-ar" | "meta-desc";
 
@@ -651,43 +652,56 @@ export default function AdminAppEditPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Status</label>
-                <select value={form.status} onChange={(e) => updateField("status", e.target.value as FormState["status"])}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={inputStyle}>
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
-                  <option value="HIDDEN">Hidden</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Type</label>
-                <select value={form.type} onChange={(e) => updateField("type", e.target.value as FormState["type"])}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={inputStyle}>
-                  <option value="APP">App</option>
-                  <option value="GAME">Game</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Release Type</label>
-                <select value={form.releaseType} onChange={(e) => updateField("releaseType", e.target.value as FormState["releaseType"])}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={inputStyle}>
-                  <option value="ORIGINAL">Original</option>
-                  <option value="MOD">MOD</option>
-                  <option value="BETA">Beta</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Category</label>
-                <select value={form.categoryId} onChange={(e) => updateField("categoryId", e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={inputStyle}>
-                  <option value="">— None —</option>
-                  {categories.filter(c => c.type === form.type).map((cat) => (
-                    <option key={cat.id} value={cat.id}>{(cat.name as Record<string, string>).en}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1.5" style={{ color: "hsl(var(--color-text-secondary))" }}>Status</label>
+                 <CustomSelect
+                   value={form.status}
+                   onChange={(val) => updateField("status", val as FormState["status"])}
+                   options={[
+                     { value: "DRAFT", label: "Draft" },
+                     { value: "PUBLISHED", label: "Published" },
+                     { value: "HIDDEN", label: "Hidden" },
+                   ]}
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1.5" style={{ color: "hsl(var(--color-text-secondary))" }}>Type</label>
+                 <CustomSelect
+                   value={form.type}
+                   onChange={(val) => updateField("type", val as FormState["type"])}
+                   options={[
+                     { value: "APP", label: "App" },
+                     { value: "GAME", label: "Game" },
+                   ]}
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1.5" style={{ color: "hsl(var(--color-text-secondary))" }}>Release Type</label>
+                 <CustomSelect
+                   value={form.releaseType}
+                   onChange={(val) => updateField("releaseType", val as FormState["releaseType"])}
+                   options={[
+                     { value: "ORIGINAL", label: "Original" },
+                     { value: "MOD", label: "MOD" },
+                     { value: "BETA", label: "Beta" },
+                   ]}
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-medium mb-1.5" style={{ color: "hsl(var(--color-text-secondary))" }}>Category</label>
+                 <CustomSelect
+                   value={form.categoryId || ""}
+                   onChange={(val) => updateField("categoryId", val)}
+                   options={[
+                     { value: "", label: "— None —" },
+                     ...categories.filter(c => c.type === form.type).map((cat) => ({
+                       value: cat.id,
+                       label: (cat.name as Record<string, string>).en,
+                     })),
+                   ]}
+                 />
+               </div>
+             </div>
 
             <div>
               <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Tags</label>

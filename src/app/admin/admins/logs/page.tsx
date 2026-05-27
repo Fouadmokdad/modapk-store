@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface ActivityLog {
   id: string;
@@ -152,24 +153,25 @@ export default function SecurityLogsPage() {
         </div>
 
         {/* Action Filter */}
-        <select
+        <CustomSelect
           value={actionFilter}
-          onChange={(e) => setActionFilter(e.target.value)}
-          className="input py-2.5 px-4 text-xs font-semibold bg-white/[0.03] border border-white/10 rounded-xl text-white cursor-pointer hover:bg-white/5 transition-all outline-none w-full md:w-48"
-        >
-          <option value="">All Actions</option>
-          <option value="LOGIN">LOGIN</option>
-          <option value="LOGOUT">LOGOUT</option>
-          <option value="APP_CREATE">APP CREATE</option>
-          <option value="APP_EDIT">APP EDIT</option>
-          <option value="APP_DELETE">APP DELETE</option>
-          <option value="VERSION_CREATE">VERSION CREATE</option>
-          <option value="SETTING_CHANGE">SETTINGS CHANGE</option>
-          <option value="ADMIN_CREATE">ADMIN CREATE</option>
-          <option value="ADMIN_EDIT">ADMIN EDIT</option>
-          <option value="ADMIN_DELETE">ADMIN DELETE</option>
-          <option value="PASSWORD_CHANGE">PASSWORD CHANGE</option>
-        </select>
+          onChange={(val) => setActionFilter(val)}
+          options={[
+            { value: "", label: "All Actions" },
+            { value: "LOGIN", label: "LOGIN" },
+            { value: "LOGOUT", label: "LOGOUT" },
+            { value: "APP_CREATE", label: "APP CREATE" },
+            { value: "APP_EDIT", label: "APP EDIT" },
+            { value: "APP_DELETE", label: "APP DELETE" },
+            { value: "VERSION_CREATE", label: "VERSION CREATE" },
+            { value: "SETTING_CHANGE", label: "SETTINGS CHANGE" },
+            { value: "ADMIN_CREATE", label: "ADMIN CREATE" },
+            { value: "ADMIN_EDIT", label: "ADMIN EDIT" },
+            { value: "ADMIN_DELETE", label: "ADMIN DELETE" },
+            { value: "PASSWORD_CHANGE", label: "PASSWORD CHANGE" },
+          ]}
+          className="w-full md:w-48 shrink-0"
+        />
       </div>
 
       {/* Grid Table */}

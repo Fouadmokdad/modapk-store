@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { ImportedAppData, ExternalDownloadLink } from "@/lib/importers/types";
 import { isAllowedImageHost } from "@/lib/importers/image-safety";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 const supportedSources = [
   { name: "Google Play", domain: "play.google.com", color: "#607D8B", isOfficial: true, placeholder: "com.king.candycrushsaga or full URL", tips: "100% safe, verified metadata. Direct extraction from official app store registry." },
@@ -1545,15 +1546,15 @@ export default function ImportUrlPage() {
               {/* Type */}
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Type</label>
-                <select
+                <CustomSelect
                   value={preview.type}
-                  onChange={(e) => updatePreviewField((prev) => ({ ...prev, type: e.target.value as "APP" | "GAME" }))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer"
-                  style={inputStyle}
-                >
-                  <option value="APP">APP</option>
-                  <option value="GAME">GAME</option>
-                </select>
+                  onChange={(val) => updatePreviewField((prev) => ({ ...prev, type: val as "APP" | "GAME" }))}
+                  options={[
+                    { value: "APP", label: "APP" },
+                    { value: "GAME", label: "GAME" },
+                  ]}
+                  className="w-full text-xs font-semibold"
+                />
               </div>
 
               {/* Size */}

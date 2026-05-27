@@ -9,6 +9,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AppCardGrid, AppCardGridSkeleton } from "@/components/app/AppCard";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface AppData {
   id: string;
@@ -163,15 +164,16 @@ export default function AppsPage() {
             </div>
 
             {/* Sort selector */}
-            <select
+            <CustomSelect
               value={sort}
-              onChange={(e) => { setSort(e.target.value); setPage(1); }}
-              className="input py-2.5 px-4 text-xs font-semibold bg-white/[0.03] border border-white/10 rounded-full text-white cursor-pointer hover:bg-white/5 transition-all outline-none w-full sm:w-auto min-w-[150px]"
-            >
-              <option value="downloadCount">{t("search.mostDownloaded")}</option>
-              <option value="createdAt">{t("search.newest")}</option>
-              <option value="rating">{t("search.topRated")}</option>
-            </select>
+              onChange={(val) => { setSort(val); setPage(1); }}
+              options={[
+                { value: "downloadCount", label: t("search.mostDownloaded") },
+                { value: "createdAt", label: t("search.newest") },
+                { value: "rating", label: t("search.topRated") },
+              ]}
+              className="w-full sm:w-48 shrink-0"
+            />
           </div>
         </div>
 

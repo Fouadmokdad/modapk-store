@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 export default function AddAdminPage() {
   const { data: session, status } = useSession();
@@ -186,16 +187,16 @@ export default function AddAdminPage() {
           {/* Role selection */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Role Access Level</label>
-            <select
+            <CustomSelect
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="input w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white outline-none focus:border-emerald-500/30 transition-all text-sm cursor-pointer"
-            >
-              <option value="SUPER_ADMIN">SUPER ADMIN (Full Access + Admin Management)</option>
-              <option value="ADMIN">ADMIN (Full Content management)</option>
-              <option value="EDITOR">EDITOR (Modify apps content only)</option>
-              <option value="UPLOADER">UPLOADER (Upload versions/mirrors only)</option>
-            </select>
+              onChange={(val) => setRole(val)}
+              options={[
+                { value: "SUPER_ADMIN", label: "SUPER ADMIN (Full Access + Admin Management)" },
+                { value: "ADMIN", label: "ADMIN (Full Content management)" },
+                { value: "EDITOR", label: "EDITOR (Modify apps content only)" },
+                { value: "UPLOADER", label: "UPLOADER (Upload versions/mirrors only)" },
+              ]}
+            />
           </div>
 
           {/* Active status */}

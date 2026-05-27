@@ -10,6 +10,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AppCardGrid, AppCardGridSkeleton } from "@/components/app/AppCard";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface AppData {
   id: string;
@@ -119,16 +120,16 @@ function SearchContent() {
           </div>
 
           {/* Sort */}
-          <select
+          <CustomSelect
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="input py-2 px-3 text-xs w-auto rounded-full"
-            style={{ maxWidth: 180 }}
-          >
-            <option value="downloadCount">{t("search.mostDownloaded")}</option>
-            <option value="createdAt">{t("search.newest")}</option>
-            <option value="rating">{t("search.topRated")}</option>
-          </select>
+            onChange={(val) => setSort(val)}
+            options={[
+              { value: "downloadCount", label: t("search.mostDownloaded") },
+              { value: "createdAt", label: t("search.newest") },
+              { value: "rating", label: t("search.topRated") },
+            ]}
+            className="w-48 shrink-0"
+          />
         </div>
 
         {/* Results Grid */}

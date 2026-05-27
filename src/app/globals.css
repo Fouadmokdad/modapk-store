@@ -548,6 +548,14 @@ body {
 .fade-in-scale { animation: fadeInScale 0.4s ease-out both; }
 .slide-in-right { animation: slideInRight 0.4s ease-out both; }
 
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-up {
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Stagger children */
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
 .stagger > *:nth-child(2) { animation-delay: 50ms; }

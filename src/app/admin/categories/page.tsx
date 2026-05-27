@@ -5,6 +5,7 @@
 // =============================================================================
 import React, { useEffect, useState, useCallback } from "react";
 import type { CategoryData } from "@/types/app";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -150,15 +151,15 @@ export default function AdminCategoriesPage() {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Type</label>
-              <select
+              <CustomSelect
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as "APP" | "GAME" })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer"
-                style={{ background: "hsl(var(--color-bg-secondary))", color: "hsl(var(--color-text-primary))", border: "1px solid hsl(var(--color-border))" }}
-              >
-                <option value="APP">App</option>
-                <option value="GAME">Game</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, type: val as "APP" | "GAME" })}
+                options={[
+                  { value: "APP", label: "App" },
+                  { value: "GAME", label: "Game" },
+                ]}
+                className="w-full text-xs font-semibold"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Name (English)</label>

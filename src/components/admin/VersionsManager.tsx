@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 interface Version {
   id: string;
@@ -625,17 +626,18 @@ export function VersionsManager({ appId }: VersionsManagerProps) {
                       </div>
                       <div>
                         <label className="block text-[10px] text-neutral-400 mb-0.5">Health Status</label>
-                        <select
+                        <CustomSelect
                           value={mirrorForm.healthStatus}
-                          onChange={(e) => setMirrorForm({ ...mirrorForm, healthStatus: e.target.value })}
-                          className="w-full px-2.5 py-2 rounded-lg text-xs outline-none bg-neutral-900 border border-neutral-800 text-white cursor-pointer"
-                        >
-                          <option value="HEALTHY">Verified Online (Healthy)</option>
-                          <option value="SLOW">Slow Response</option>
-                          <option value="DEAD">Offline / Broken Link</option>
-                          <option value="REDIRECT_BROKEN">Redirect Cycle Broken</option>
-                          <option value="REMOVED">File Removed by Host</option>
-                        </select>
+                          onChange={(val) => setMirrorForm({ ...mirrorForm, healthStatus: val })}
+                          options={[
+                            { value: "HEALTHY", label: "Verified Online (Healthy)" },
+                            { value: "SLOW", label: "Slow Response" },
+                            { value: "DEAD", label: "Offline / Broken Link" },
+                            { value: "REDIRECT_BROKEN", label: "Redirect Cycle Broken" },
+                            { value: "REMOVED", label: "File Removed by Host" },
+                          ]}
+                          className="w-full text-xs font-semibold"
+                        />
                       </div>
                     </div>
 
