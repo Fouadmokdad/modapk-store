@@ -639,24 +639,31 @@ export default function HomePage() {
                 <h3 className="text-xs font-bold uppercase tracking-wider mb-4 text-neutral-400 flex items-center gap-2">
                   <span>📱</span> {t("nav.apps")}
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {appCategories.slice(0, 12).map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/categories/${cat.slug}`}
-                      className="flex items-center gap-3.5 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-emerald-500/30 hover:bg-white/[0.06] hover:shadow-[0_8px_25px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-300 group"
-                    >
-                      <span className="text-2xl shrink-0 select-none group-hover:scale-110 transition-transform duration-300">{categoryEmojis[cat.slug] || "📁"}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors duration-200">
-                          {txt(cat.name)}
-                        </p>
-                        <p className="text-xs text-neutral-400 mt-0.5">
-                          {cat._count.apps} {locale === "ar" ? "تطبيقات" : "Apps"}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {appCategories.slice(0, 12).map((cat, idx) => {
+                    let responsiveClass = "flex";
+                    if (idx >= 8) responsiveClass = "hidden xl:flex";
+                    else if (idx >= 4) responsiveClass = "hidden lg:flex";
+                    else if (idx === 3) responsiveClass = "hidden sm:flex";
+
+                    return (
+                      <Link
+                        key={cat.id}
+                        href={`/categories/${cat.slug}`}
+                        className={`${responsiveClass} items-center gap-2.5 sm:gap-3.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/10 bg-white/[0.03] hover:border-emerald-500/30 hover:bg-white/[0.06] hover:shadow-[0_8px_25px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-300 group`}
+                      >
+                        <span className="text-xl sm:text-2xl shrink-0 select-none group-hover:scale-110 transition-transform duration-300">{categoryEmojis[cat.slug] || "📁"}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors duration-200">
+                            {txt(cat.name)}
+                          </p>
+                          <p className="text-[10px] sm:text-xs text-neutral-400 mt-0.5">
+                            {cat._count.apps} {locale === "ar" ? "تطبيقات" : "Apps"}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -667,27 +674,45 @@ export default function HomePage() {
                 <h3 className="text-xs font-bold uppercase tracking-wider mb-4 text-neutral-400 flex items-center gap-2">
                   <span>🎮</span> {t("nav.games")}
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {gameCategories.slice(0, 12).map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/categories/${cat.slug}`}
-                      className="flex items-center gap-3.5 p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-emerald-500/30 hover:bg-white/[0.06] hover:shadow-[0_8px_25px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-300 group"
-                    >
-                      <span className="text-2xl shrink-0 select-none group-hover:scale-110 transition-transform duration-300">{categoryEmojis[cat.slug] || "🎮"}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors duration-200">
-                          {txt(cat.name)}
-                        </p>
-                        <p className="text-xs text-neutral-400 mt-0.5">
-                          {cat._count.apps} {locale === "ar" ? "ألعاب" : "Games"}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {gameCategories.slice(0, 12).map((cat, idx) => {
+                    let responsiveClass = "flex";
+                    if (idx >= 8) responsiveClass = "hidden xl:flex";
+                    else if (idx >= 4) responsiveClass = "hidden lg:flex";
+                    else if (idx === 3) responsiveClass = "hidden sm:flex";
+
+                    return (
+                      <Link
+                        key={cat.id}
+                        href={`/categories/${cat.slug}`}
+                        className={`${responsiveClass} items-center gap-2.5 sm:gap-3.5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/10 bg-white/[0.03] hover:border-emerald-500/30 hover:bg-white/[0.06] hover:shadow-[0_8px_25px_rgba(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-300 group`}
+                      >
+                        <span className="text-xl sm:text-2xl shrink-0 select-none group-hover:scale-110 transition-transform duration-300">{categoryEmojis[cat.slug] || "🎮"}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors duration-200">
+                            {txt(cat.name)}
+                          </p>
+                          <p className="text-[10px] sm:text-xs text-neutral-400 mt-0.5">
+                            {cat._count.apps} {locale === "ar" ? "ألعاب" : "Games"}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}
+
+            {/* Centered Mobile View All Categories Button */}
+            <div className="mt-6 flex justify-center sm:hidden">
+              <Link
+                href="/categories"
+                className="w-full text-center py-3 px-5 rounded-xl font-bold text-xs text-neutral-300 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-[0.98] transition-all"
+              >
+                {locale === "ar" ? "عرض جميع التصنيفات 📁" : "View All Categories 📁"}
+              </Link>
+            </div>
+
           </div>
         </section>
       )}

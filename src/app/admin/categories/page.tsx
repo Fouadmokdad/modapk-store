@@ -228,7 +228,7 @@ export default function AdminCategoriesPage() {
       </div>
 
       {/* Categories List */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "hsl(var(--color-bg-card))", border: "1px solid hsl(var(--color-border))" }}>
+      <div className="rounded-2xl" style={{ background: "hsl(var(--color-bg-card))", border: "1px solid hsl(var(--color-border))" }}>
         {loading ? (
           <div className="p-6 space-y-3">
             {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-12 rounded-xl" />)}
@@ -241,7 +241,7 @@ export default function AdminCategoriesPage() {
               const name = cat.name as Record<string, string>;
               const count = cat._count?.apps ?? 0;
               return (
-                <div key={cat.id} className="flex items-center gap-4 px-5 py-3.5">
+                <div key={cat.id} className="flex items-center gap-4 px-5 py-3.5 first:rounded-t-2xl last:rounded-b-2xl hover:bg-white/[0.01] transition-all">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium" style={{ color: "hsl(var(--color-text-primary))" }}>{name.en}</span>

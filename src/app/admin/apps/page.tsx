@@ -151,7 +151,7 @@ export default function AdminAppsPage() {
 
       {/* Apps Table */}
       <div
-        className="rounded-2xl overflow-hidden"
+        className="rounded-2xl"
         style={{ background: "hsl(var(--color-bg-card))", border: "1px solid hsl(var(--color-border))" }}
       >
         {loading ? (
@@ -177,10 +177,7 @@ export default function AdminAppsPage() {
               return (
                 <div
                   key={app.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 transition-all"
-                  style={{ background: "transparent" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "hsl(var(--color-bg-secondary) / 0.5)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 transition-all first:rounded-t-2xl last:rounded-b-2xl hover:bg-[hsl(var(--color-bg-secondary)/0.4)]"
                 >
                   <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto">
                     {/* Icon */}
