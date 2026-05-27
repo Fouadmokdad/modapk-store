@@ -236,6 +236,14 @@ export async function POST(request: NextRequest) {
       request
     );
 
+    // Queue Telegram post if published
+    if (app.status === "PUBLISHED") {
+      const { queueTelegramPost } = await import("@/lib/telegram/telegramQueue");
+      queueTelegramPost(app.id).catch((err) => {
+        console.error("[AppsAPI] Error triggering Telegram post:", err);
+      });
+    }
+
     return NextResponse.json({ data: app }, { status: 201 });
   } catch (error) {
     console.error("POST /api/apps error:", error);

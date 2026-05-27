@@ -41,6 +41,11 @@ const jobHandlers: Record<string, (data: any) => Promise<any>> = {
     const { runAutoUpdateCrawler } = await import("../cron/updateCrawler");
     return runAutoUpdateCrawler();
   },
+  // Telegram Posting queue
+  telegramPost: async (data: { logId: string }) => {
+    const { processTelegramPost } = await import("../telegram/telegramQueue");
+    return processTelegramPost(data.logId);
+  },
 };
 
 /**
@@ -83,7 +88,7 @@ export function initQueueEngine() {
 function setupRedisWorkers() {
   if (!useRedis || !redisConnection) return;
 
-  const queues = ["extractionQueue", "seoQueue", "mirrorCheckQueue", "updateCrawlerQueue"];
+  const queues = ["extractionQueue", "seoQueue", "mirrorCheckQueue", "updateCrawlerQueue", "telegramQueue"];
 
   queues.forEach((queueName) => {
     new Worker(

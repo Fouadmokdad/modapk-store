@@ -19,7 +19,14 @@ export async function GET() {
     }
 
     const settings = await getSiteSettings();
-    return NextResponse.json({ data: settings });
+    
+    // Mask the Telegram Bot Token for security before sending to frontend
+    const maskedSettings = {
+      ...settings,
+      telegramBotToken: settings.telegramBotToken ? "••••••••••••••••" : "",
+    };
+
+    return NextResponse.json({ data: maskedSettings });
   } catch (error: any) {
     console.error("GET /api/admin/settings error:", error);
     return NextResponse.json(
@@ -43,6 +50,17 @@ export async function POST(request: NextRequest) {
 
     // Validate body schema using settings Zod validator
     const validated = settingsSchema.parse(body);
+
+    // Secure Bot Token encryption / preservation
+    const existing = await getSiteSettings();
+    if (validated.telegramBotToken === "••••••••••••••••" || validated.telegramBotToken === "__MASKED__") {
+      validated.telegramBotToken = existing.telegramBotToken;
+    } else if (validated.telegramBotToken) {
+      const { encrypt } = await import("@/lib/encryption");
+      validated.telegramBotToken = encrypt(validated.telegramBotToken);
+    } else {
+      validated.telegramBotToken = "";
+    }
 
     const updated = await updateSiteSettings(validated);
 

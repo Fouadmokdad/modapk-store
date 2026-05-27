@@ -70,7 +70,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       where: {
         OR: [{ id }, { slug: id }],
       },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!app) {
@@ -119,6 +119,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       `Added app version ${version.versionName} to app ID: ${app.id}`,
       request
     );
+
+    // Queue Telegram post for version update if parent app is published
+    if (app.status === "PUBLISHED") {
+      const { queueTelegramPost } = await import("@/lib/telegram/telegramQueue");
+      queueTelegramPost(app.id, version.id).catch((err) => {
+        console.error("[VersionAPI] Error triggering Telegram post for version:", err);
+      });
+    }
 
     return NextResponse.json({ data: version }, { status: 201 });
   } catch (error) {

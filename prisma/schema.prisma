@@ -154,6 +154,7 @@ model App {
   pageViews      PageView[]
   downloadEvents DownloadEvent[]
   downloadMirrors DownloadMirror[]
+  telegramLogs   TelegramLog[]
 
   @@index([status])
   @@index([type])
@@ -376,6 +377,21 @@ model Setting {
   adsSettings      Json?    // { showBanner: true, showNative: true }
   featureFlags     Json?    // { reportsEnabled: true, playStoreFetchEnabled: true }
 
+  // Telegram Posting Integration
+  telegramEnabled                Boolean   @default(false)
+  telegramBotToken               String?
+  telegramChatId                 String?
+  telegramPostMode               String    @default("INSTANT") // INSTANT, SCHEDULED
+  telegramDefaultHashtags        String?
+  telegramIncludeImage           Boolean   @default(true)
+  telegramIncludeModFeatures     Boolean   @default(true)
+  telegramIncludeDownloadButton  Boolean   @default(true)
+  telegramIncludeVersionInfo     Boolean   @default(true)
+  telegramIncludeApkSize         Boolean   @default(true)
+  telegramIncludeChangelog       Boolean   @default(true)
+  telegramSilentPost             Boolean   @default(false)
+  telegramPinPost                Boolean   @default(false)
+
   updatedAt        DateTime @updatedAt
 
   @@map("settings")
@@ -412,5 +428,29 @@ model DownloadMirror {
   @@index([versionId])
   @@index([appId])
   @@map("download_mirrors")
+}
+
+// =============================================================================
+// Telegram Auto Posting Logs
+// =============================================================================
+
+model TelegramLog {
+  id               String      @id @default(cuid())
+  appId            String?
+  app              App?        @relation(fields: [appId], references: [id], onDelete: SetNull)
+  appName          String
+  versionName      String?
+  status           String      @default("PENDING") // PENDING, POSTED, FAILED
+  retryCount       Int         @default(0)
+  payload          Json?
+  telegramResponse Json?
+  errorDetails     String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([appId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("telegram_logs")
 }
 

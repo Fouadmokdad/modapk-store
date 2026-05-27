@@ -136,6 +136,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       request
     );
 
+    // Queue Telegram post if app transitioned to PUBLISHED
+    const wasPublished = existing.status === "PUBLISHED";
+    const isNowPublished = app.status === "PUBLISHED";
+    if (isNowPublished && !wasPublished) {
+      const { queueTelegramPost } = await import("@/lib/telegram/telegramQueue");
+      queueTelegramPost(app.id).catch((err) => {
+        console.error("[AppsAPI] Error triggering Telegram post on PUT:", err);
+      });
+    }
+
     return NextResponse.json({ data: app });
   } catch (error) {
     console.error('UPDATE_APP_ERROR', error);
@@ -201,6 +211,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       `Changed status of app: ${app.slug} to ${app.status}`,
       request
     );
+
+    // Queue Telegram post if app transitioned to PUBLISHED
+    const wasPublished = existing.status === "PUBLISHED";
+    const isNowPublished = app.status === "PUBLISHED";
+    if (isNowPublished && !wasPublished) {
+      const { queueTelegramPost } = await import("@/lib/telegram/telegramQueue");
+      queueTelegramPost(app.id).catch((err) => {
+        console.error("[AppsAPI] Error triggering Telegram post on PATCH:", err);
+      });
+    }
 
     return NextResponse.json({ data: app });
   } catch (error) {

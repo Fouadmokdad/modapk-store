@@ -15,6 +15,7 @@ const sections = [
   { id: "ads", label: "📢 Ads Settings", desc: "Configure responsive Google AdSense or mirror banner placeholder placements" },
   { id: "legal", label: "⚖️ Legal & Footer", desc: "Safety warnings, global disclaimers, and footer copyrights" },
   { id: "socials", label: "📱 Social Networks", desc: "Site connection urls for social media feeds" },
+  { id: "telegram", label: "📢 Telegram", desc: "Configure Telegram channel auto-posting, bot tokens, and content layouts" },
 ];
 
 export default function AdminSettingsPage() {
@@ -28,6 +29,39 @@ export default function AdminSettingsPage() {
 
   // Settings Form State
   const [settings, setSettings] = useState<SiteSettings | null>(null);
+
+  // Telegram test connection states
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestConnection = async () => {
+    if (!settings?.telegramChatId) {
+      setConnectionResult({ success: false, message: "Chat ID is required to test connection." });
+      return;
+    }
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const res = await fetch("/api/admin/telegram-logs/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          botToken: settings.telegramBotToken,
+          chatId: settings.telegramChatId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setConnectionResult({ success: true, message: "Connection successful! Test message sent to Telegram." });
+      } else {
+        setConnectionResult({ success: false, message: data.error || "Failed to connect. Verify your Bot Token and Chat ID." });
+      }
+    } catch (err: any) {
+      setConnectionResult({ success: false, message: err.message || "Network error. Please try again." });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   // Fetch settings on mount
   useEffect(() => {
@@ -552,6 +586,195 @@ export default function AdminSettingsPage() {
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
                   style={inputStyle}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* ============ TELEGRAM ============ */}
+          {activeSection === "telegram" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Enable Telegram Auto Posting</h3>
+                  <p className="text-xs text-neutral-400">Instantly post new apps and versions to your channel on publish</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={settings.telegramEnabled}
+                    onChange={(e) => updateSetting((prev) => ({ ...prev, telegramEnabled: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-neutral-300">Telegram Bot Token</label>
+                  <input
+                    type="password"
+                    value={settings.telegramBotToken || ""}
+                    placeholder="Paste bot token from @BotFather"
+                    onChange={(e) => updateSetting((prev) => ({ ...prev, telegramBotToken: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-neutral-300">Channel / Group Chat ID</label>
+                  <input
+                    type="text"
+                    value={settings.telegramChatId || ""}
+                    placeholder="e.g. -100XXXXXXXXXX or @channel_username"
+                    onChange={(e) => updateSetting((prev) => ({ ...prev, telegramChatId: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={testingConnection}
+                  onClick={handleTestConnection}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 cursor-pointer disabled:opacity-50"
+                >
+                  {testingConnection ? "Testing Connection..." : "🔌 Test Telegram Connection"}
+                </button>
+              </div>
+
+              {connectionResult && (
+                <div
+                  className={`p-3.5 rounded-xl text-xs transition-all ${
+                    connectionResult.success
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "bg-red-500/10 text-red-400 border border-red-500/20"
+                  }`}
+                >
+                  <span className="font-semibold">{connectionResult.success ? "Success:" : "Error:"}</span> {connectionResult.message}
+                </div>
+              )}
+
+              <hr style={{ borderColor: "hsl(var(--color-border))" }} />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-neutral-300">Post Mode</label>
+                  <select
+                    value={settings.telegramPostMode}
+                    onChange={(e) => updateSetting((prev) => ({ ...prev, telegramPostMode: e.target.value as any }))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={inputStyle}
+                  >
+                    <option value="INSTANT">⚡ Instant (Post immediately on publish)</option>
+                    <option value="SCHEDULED">⏰ Scheduled (Save pending, post later)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-neutral-300">Default Hashtags</label>
+                  <input
+                    type="text"
+                    value={settings.telegramDefaultHashtags || ""}
+                    placeholder="#MODAPK #Premium #Android"
+                    onChange={(e) => updateSetting((prev) => ({ ...prev, telegramDefaultHashtags: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Content Toggles</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramIncludeImage}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramIncludeImage: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Include App Image</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramIncludeModFeatures}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramIncludeModFeatures: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Include MOD Features</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramIncludeDownloadButton}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramIncludeDownloadButton: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Include Download Button</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramIncludeVersionInfo}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramIncludeVersionInfo: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Include Version Info</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramIncludeApkSize}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramIncludeApkSize: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Include APK Size</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramIncludeChangelog}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramIncludeChangelog: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Include Changelog</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Advanced Settings</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramSilentPost}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramSilentPost: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Silent Posts (No sound notifications)</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all">
+                    <input
+                      type="checkbox"
+                      checked={settings.telegramPinPost}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, telegramPinPost: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-emerald-500"
+                    />
+                    <span className="text-xs text-neutral-300">Auto-pin important posts</span>
+                  </label>
+                </div>
               </div>
             </div>
           )}
