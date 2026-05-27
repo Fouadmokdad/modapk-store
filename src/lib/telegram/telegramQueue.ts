@@ -23,6 +23,21 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
   let currentApp: any = null;
 
   try {
+    // Deduplication check: prevent queuing same app twice within 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const existingRecentLog = await db.telegramLog.findFirst({
+      where: {
+        appId,
+        createdAt: { gte: fiveMinutesAgo },
+        status: { in: ["PENDING", "POSTED"] },
+      },
+    });
+
+    if (existingRecentLog) {
+      console.log(`[TelegramQueue] Duplicate prevention: App ID ${appId} was already queued or posted in the last 5 minutes. Skipping.`);
+      return null;
+    }
+
     const settings = await getSiteSettings();
     if (!settings.telegramEnabled) {
       console.log(`[TelegramQueue] Global auto-posting integration is disabled. Skipping.`);
@@ -287,8 +302,10 @@ export async function processTelegramPost(logId: string) {
       console.warn(`[TelegramQueue] Attempt ${attempt + 1} failed: ${lastError}`);
       
       if (attempt < maxRetries - 1) {
-        // Wait 5 seconds before retrying
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        // Exponential backoff: attempt 0 -> 5s, attempt 1 -> 10s
+        const backoffDelay = 5000 * Math.pow(2, attempt);
+        console.log(`[TelegramQueue] Waiting ${backoffDelay / 1000}s before retrying...`);
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }
   }

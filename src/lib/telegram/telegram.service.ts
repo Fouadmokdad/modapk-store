@@ -11,6 +11,43 @@ interface SendTelegramOptions {
 }
 
 /**
+ * Helper to fetch from Telegram Bot API with automatic 429 rate-limiting retry mechanism
+ */
+async function fetchTelegram(url: string, body: Record<string, any>, retries = 2): Promise<{ ok: boolean; json: any }> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const json = await response.json().catch(() => ({ ok: false, description: "Invalid JSON response" }));
+
+      if (response.status === 429 || json.error_code === 429) {
+        const retryAfter = json.parameters?.retry_after || 5; // seconds
+        console.warn(`[TelegramService] Rate limited (429). Retrying in ${retryAfter}s... (Attempt ${attempt + 1}/${retries + 1})`);
+        
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+          continue;
+        }
+      }
+
+      return { ok: response.ok && json.ok, json };
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`[TelegramService] Fetch error on attempt ${attempt + 1}, retrying in 2s...`, err);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        continue;
+      }
+      throw err;
+    }
+  }
+  return { ok: false, json: { ok: false, description: "Failed after max rate limit retries" } };
+}
+
+/**
  * Sends a message or photo post to the configured Telegram Channel or Group
  */
 export async function sendTelegramMessage(options: SendTelegramOptions) {
@@ -39,21 +76,16 @@ export async function sendTelegramMessage(options: SendTelegramOptions) {
   if (photoToSend && (photoToSend.startsWith("http://") || photoToSend.startsWith("https://"))) {
     try {
       console.log(`[TelegramService] Attempting to send photo post to chat: ${chatId}`);
-      const response = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          photo: photoToSend,
-          caption: options.text,
-          parse_mode: "HTML",
-          reply_markup: options.reply_markup,
-          disable_notification: silent,
-        }),
+      const { ok, json } = await fetchTelegram(`https://api.telegram.org/bot${token}/sendPhoto`, {
+        chat_id: chatId,
+        photo: photoToSend,
+        caption: options.text,
+        parse_mode: "HTML",
+        reply_markup: options.reply_markup,
+        disable_notification: silent,
       });
 
-      const json = await response.json();
-      if (json.ok) {
+      if (ok) {
         return json;
       }
       
@@ -66,34 +98,25 @@ export async function sendTelegramMessage(options: SendTelegramOptions) {
 
   // Fallback to standard Text Message
   console.log(`[TelegramService] Sending standard text message to chat: ${chatId}`);
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: options.text,
-      parse_mode: "HTML",
-      reply_markup: options.reply_markup,
-      disable_notification: silent,
-    }),
+  const { ok, json } = await fetchTelegram(`https://api.telegram.org/bot${token}/sendMessage`, {
+    chat_id: chatId,
+    text: options.text,
+    parse_mode: "HTML",
+    reply_markup: options.reply_markup,
+    disable_notification: silent,
   });
 
-  const json = await response.json();
-  if (!json.ok) {
+  if (!ok) {
     throw new Error(json.description || "Failed to send message via Telegram Bot API");
   }
 
   // Handle post pinning as a bonus feature if enabled
   if (settings.telegramPinPost && json.result?.message_id) {
     try {
-      await fetch(`https://api.telegram.org/bot${token}/pinChatMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          message_id: json.result.message_id,
-          disable_notification: true,
-        }),
+      await fetchTelegram(`https://api.telegram.org/bot${token}/pinChatMessage`, {
+        chat_id: chatId,
+        message_id: json.result.message_id,
+        disable_notification: true,
       });
       console.log(`[TelegramService] Successfully pinned message: ${json.result.message_id}`);
     } catch (pinErr) {
@@ -126,18 +149,13 @@ export async function testTelegramConnection(token: string, chatId: string): Pro
   console.log(`[TelegramService] Testing connection for chat: ${chatId}`);
   const testMessage = `🔌 <b>MOD APK Store — Telegram Integration Test</b>\n\nConnection successful! Auto posting is active and ready to publish.`;
 
-  const response = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: testMessage,
-      parse_mode: "HTML",
-    }),
+  const { ok, json } = await fetchTelegram(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
+    chat_id: chatId,
+    text: testMessage,
+    parse_mode: "HTML",
   });
 
-  const json = await response.json();
-  if (!json.ok) {
+  if (!ok) {
     throw new Error(json.description || "Failed to connect to Telegram chat");
   }
 

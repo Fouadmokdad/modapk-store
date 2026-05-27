@@ -44,6 +44,11 @@ export default function TelegramLogsPage() {
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ success: boolean; message: string } | null>(null);
 
+  const showToast = (success: boolean, message: string) => {
+    setToast({ success, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const fetchLogs = useCallback(async (pageNum: number = 1) => {
     setLoading(true);
     try {
@@ -66,11 +71,6 @@ export default function TelegramLogsPage() {
   useEffect(() => {
     fetchLogs(page);
   }, [fetchLogs, page]);
-
-  const showToast = (success: boolean, message: string) => {
-    setToast({ success, message });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const handleRetry = async (logId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent modal opening

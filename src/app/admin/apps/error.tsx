@@ -16,6 +16,15 @@ export default function AppsAdminErrorBoundary({ error, reset }: ErrorProps) {
     console.error("Apps Admin Module Runtime Crash Caught:", error);
   }, [error]);
 
+  const copyError = () => {
+    navigator.clipboard.writeText(
+      `Message: ${error.message}\nStack: ${error.stack || "N/A"}\nDigest: ${error.digest || "N/A"}`
+    );
+    alert("Error logs copied to clipboard!");
+  };
+
+  const isDev = process.env.NODE_ENV === "development";
+
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
       <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-2xl mb-5">
@@ -24,9 +33,18 @@ export default function AppsAdminErrorBoundary({ error, reset }: ErrorProps) {
       <h2 className="text-lg font-bold mb-1" style={{ color: "hsl(var(--color-text-primary))" }}>
         Apps Directory Render Failed
       </h2>
-      <p className="text-xs max-w-sm mb-6 leading-relaxed" style={{ color: "hsl(var(--color-text-secondary))" }}>
+      <p className="text-xs max-w-sm mb-4 leading-relaxed" style={{ color: "hsl(var(--color-text-secondary))" }}>
         Failed to dynamically list or render the APK applications list. This has been defensively caught.
       </p>
+
+      {/* Development error display */}
+      <div className="w-full max-w-sm mb-5 text-left bg-black/40 border border-red-500/20 p-3 rounded-lg font-mono text-[10px] overflow-auto max-h-36 text-red-400">
+        <p className="font-bold mb-1">Error: {error.message || String(error)}</p>
+        {isDev && error.stack && (
+          <pre className="whitespace-pre-wrap opacity-80 mt-1">{error.stack}</pre>
+        )}
+      </div>
+
       <div className="flex gap-3">
         <button
           onClick={() => reset()}
@@ -38,6 +56,17 @@ export default function AppsAdminErrorBoundary({ error, reset }: ErrorProps) {
           }}
         >
           🔄 Reload List
+        </button>
+        <button
+          onClick={copyError}
+          className="btn btn-secondary px-4 py-2 rounded-xl font-semibold text-xs cursor-pointer active:scale-95 transition-all"
+          style={{
+            background: "hsl(var(--color-bg-secondary))",
+            color: "hsl(var(--color-text-primary))",
+            border: "1px solid hsl(var(--color-border))",
+          }}
+        >
+          📋 Copy Error
         </button>
         <Link
           href="/admin"

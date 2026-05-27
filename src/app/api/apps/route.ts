@@ -7,6 +7,8 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { appSchema, searchSchema } from "@/lib/validators";
 import { slugify } from "@/lib/utils";
+import { Prisma } from "@prisma/client";
+import { createApiResponse, createApiError, handlePrismaError } from "@/lib/error-utils";
 
 /**
  * GET /api/apps — List published apps (public) or all apps (admin)
@@ -88,14 +90,11 @@ export async function GET(request: NextRequest) {
         _count: { tags: 0, versions: 1 }
       }));
 
-      return NextResponse.json({
-        data: apps,
-        meta: {
-          total,
-          page: params.page,
-          limit: params.limit,
-          totalPages: Math.ceil(total / params.limit),
-        },
+      return createApiResponse(apps, 200, {
+        total,
+        page: params.page,
+        limit: params.limit,
+        totalPages: Math.ceil(total / params.limit),
       });
     }
 
@@ -115,14 +114,11 @@ export async function GET(request: NextRequest) {
         _count: { tags: 0, versions: 1 }
       }));
 
-      return NextResponse.json({
-        data: apps,
-        meta: {
-          total,
-          page: params.page,
-          limit: params.limit,
-          totalPages: Math.ceil(total / params.limit),
-        },
+      return createApiResponse(apps, 200, {
+        total,
+        page: params.page,
+        limit: params.limit,
+        totalPages: Math.ceil(total / params.limit),
       });
     }
 
@@ -145,27 +141,20 @@ export async function GET(request: NextRequest) {
       db.app.count({ where }),
     ]);
 
-    return NextResponse.json({
-      data: apps,
-      meta: {
-        total,
-        page: params.page,
-        limit: params.limit,
-        totalPages: Math.ceil(total / params.limit),
-      },
+    return createApiResponse(apps, 200, {
+      total,
+      page: params.page,
+      limit: params.limit,
+      totalPages: Math.ceil(total / params.limit),
     });
   } catch (error: any) {
     console.error("GET /api/apps error:", error);
+    const prismaResponse = handlePrismaError(error);
+    if (prismaResponse) return prismaResponse;
     if (error && typeof error === "object" && "issues" in error) {
-      return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
-        { status: 400 }
-      );
+      return createApiError("Validation failed", 400, error.issues);
     }
-    return NextResponse.json(
-      { error: "Failed to fetch apps" },
-      { status: 500 }
-    );
+    return createApiError("Failed to fetch apps", 500);
   }
 }
 
@@ -179,7 +168,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !hasPermission(session.user.role, "create:apps")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiError("Unauthorized", 401);
     }
 
     const body = await request.json();
@@ -190,22 +179,16 @@ export async function POST(request: NextRequest) {
       where: { slug: validated.slug },
     });
     if (existing) {
-      return NextResponse.json(
-        { error: "An app with this slug already exists" },
-        { status: 409 }
-      );
+      return createApiError("An app with this slug already exists", 409);
     }
 
-    // Check package name uniqueness
-    if (validated.packageName) {
-      const existingPkg = await db.app.findUnique({
-        where: { packageName: validated.packageName },
+    // Check package name uniqueness (excluding null/empty)
+    if (validated.packageName && validated.packageName.trim() !== "") {
+      const existingPkg = await db.app.findFirst({
+        where: { packageName: validated.packageName.trim() },
       });
       if (existingPkg) {
-        return NextResponse.json(
-          { error: "An app with this package name already exists" },
-          { status: 409 }
-        );
+        return createApiError("An app with this package name already exists", 409);
       }
     }
 
@@ -244,20 +227,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ data: app }, { status: 201 });
+    return createApiResponse(app, 201);
   } catch (error) {
     console.error("POST /api/apps error:", error);
 
+    const prismaResponse = handlePrismaError(error);
+    if (prismaResponse) return prismaResponse;
+
     if (error && typeof error === "object" && "issues" in error) {
-      return NextResponse.json(
-        { error: "Validation failed", details: error },
-        { status: 400 }
-      );
+      return createApiError("Validation failed", 400, error);
     }
 
-    return NextResponse.json(
-      { error: "Failed to create app" },
-      { status: 500 }
-    );
+    return createApiError("Failed to create app", 500);
   }
 }

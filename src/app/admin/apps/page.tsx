@@ -8,15 +8,9 @@ import Link from "next/link";
 import Image from "next/image";
 import type { AppCardData } from "@/types/app";
 import { CustomSelect } from "@/components/ui/CustomSelect";
+import { normalizeApp, DEFAULT_APP_THEME } from "@/lib/error-utils";
 
 type AppStatus = "DRAFT" | "PUBLISHED" | "HIDDEN";
-
-// Centralized Fallbacks
-const DEFAULT_APP_THEME = {
-  bg: 'from-purple-500/20 to-cyan-500/20',
-  color: '#8B5CF6',
-  border: '#A855F7'
-};
 
 const DEFAULT_STATUS_STYLE = {
   bg: "hsl(0 0% 50% / 0.1)",
@@ -30,26 +24,10 @@ const statusColors: Record<AppStatus, { bg: string; text: string; label: string 
   HIDDEN: { bg: "hsl(0 0% 50% / 0.1)", text: "hsl(0 0% 50%)", label: "Hidden" },
 };
 
-// Data Normalizer
-function normalizeApp(app: any) {
-  if (!app) return null;
-  return {
-    ...app,
-    title: typeof app.title === "object" ? app.title : { en: String(app.title || "Untitled"), ar: String(app.title || "بدون عنوان") },
-    category: app.category ?? { name: { en: "Uncategorized", ar: "غير مصنف" }, slug: "uncategorized" },
-    tags: Array.isArray(app.tags) ? app.tags : [],
-    screenshots: Array.isArray(app.screenshots) ? app.screenshots : [],
-    versions: Array.isArray(app.versions) ? app.versions : [],
-    theme: app.theme ?? DEFAULT_APP_THEME,
-    downloadCount: typeof app.downloadCount === "number" ? app.downloadCount : 0,
-    status: app.status ?? "DRAFT",
-    type: app.type ?? "APP",
-  };
-}
-
 export default function AdminAppsPage() {
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [search, setSearch] = useState("");
@@ -58,6 +36,7 @@ export default function AdminAppsPage() {
 
   const fetchApps = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -67,14 +46,21 @@ export default function AdminAppsPage() {
       if (search) params.set("q", search);
 
       const res = await fetch(`/api/apps?${params}`);
+      if (!res.ok) {
+        throw new Error(`Server returned status code ${res.status}`);
+      }
       const json = await res.json();
+      if (json && json.success === false) {
+        throw new Error(json.error || json.message || "Failed to fetch apps");
+      }
       const rawData = Array.isArray(json?.data) ? json.data : [];
       const normalizedData = rawData.filter(Boolean).map(normalizeApp).filter(Boolean);
 
       setApps(normalizedData);
       setTotalPages(json?.meta?.totalPages || 1);
-    } catch (error) {
-      console.error("Failed to fetch apps:", error);
+    } catch (err: any) {
+      console.error("Failed to fetch apps:", err);
+      setError(err?.message || "An unexpected error occurred while fetching apps.");
     } finally {
       setLoading(false);
     }
@@ -187,7 +173,24 @@ export default function AdminAppsPage() {
         className="rounded-2xl"
         style={{ background: "hsl(var(--color-bg-card))", border: "1px solid hsl(var(--color-border))" }}
       >
-        {loading ? (
+        {error ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-xl mb-4">
+              ⚠️
+            </div>
+            <h3 className="text-sm font-semibold mb-1 text-red-400">Failed to Load Applications</h3>
+            <p className="text-xs max-w-md mb-6 leading-relaxed" style={{ color: "hsl(var(--color-text-secondary))" }}>
+              {error}
+            </p>
+            <button
+              onClick={() => fetchApps()}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer"
+              style={{ background: "linear-gradient(135deg, hsl(142 71% 45%), hsl(262 83% 58%))" }}
+            >
+              🔄 Retry Fetch
+            </button>
+          </div>
+        ) : loading ? (
           <div className="p-8 space-y-4">
             {(Array.isArray(apps) ? [...Array(5)] : []).map((_, i) => (
               <div key={i} className="skeleton h-16 rounded-xl" />

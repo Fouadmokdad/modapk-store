@@ -1,35 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
-// Simple in-memory rate limiting map
-// Key: Admin Email / IP Address, Value: Timestamp of last request
-const rateLimitMap = new Map<string, number>();
-const RATE_LIMIT_COOLDOWN_MS = 3000; // 3 seconds cooldown between generations per admin
+import { checkRateLimit, callOpenAI, cachedAICall, cleanAIOutput } from "@/lib/ai-utils";
+import { createApiError, logError } from "@/lib/error-utils";
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Authorize Admin
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiError("Unauthorized", 401);
     }
 
     const adminEmail = session.user?.email || "unknown_admin";
 
     // 2. Rate Limiting Check
-    const now = Date.now();
-    const lastRequestTime = rateLimitMap.get(adminEmail);
-    if (lastRequestTime && now - lastRequestTime < RATE_LIMIT_COOLDOWN_MS) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Too many requests. Please wait a few seconds between AI operations.",
-        },
-        { status: 429 }
+    const rateCheck = checkRateLimit(adminEmail);
+    if (!rateCheck.allowed) {
+      return createApiError(
+        `Too many requests. Please wait ${Math.ceil(rateCheck.retryAfterMs / 1000)} seconds between AI operations.`,
+        429
       );
     }
-    rateLimitMap.set(adminEmail, now);
 
     // 3. Parse and Validate Request Body
     const body = await request.json();
@@ -56,15 +48,6 @@ export async function POST(request: NextRequest) {
     const currentFullAr = fullDescription?.ar || "";
 
     const apiKey = process.env.OPENAI_API_KEY;
-
-    const cleanOutputString = (str: string): string => {
-      if (!str) return "";
-      return str
-        .replace(/^```[a-zA-Z]*\n/g, "")
-        .replace(/\n```$/g, "")
-        .replace(/```/g, "")
-        .trim();
-    };
 
     if (apiKey) {
       // --- OPENAI INTEGRATION ---
@@ -147,52 +130,38 @@ AI WRITING & QUALITY RULES:
 `;
 
       try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
+        // Use cached AI call with retry + backoff
+        const cacheKey = { appTitleEn, action, relType, catName };
+        const result = await cachedAICall(
+          cacheKey,
+          async () => {
+            const contentStr = await callOpenAI({
+              apiKey,
+              systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
+              userPrompt: prompt,
+              responseFormat: { type: "json_object" },
+            });
+            return JSON.parse(contentStr);
           },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            response_format: { type: "json_object" },
-            messages: [
-              {
-                role: "system",
-                content: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
-              },
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            temperature: 0.8,
-            max_tokens: 4000,
-          }),
-        });
+          null // null fallback = will use local engine below
+        );
 
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData?.error?.message || `OpenAI returned status ${response.status}`);
+        if (result) {
+          return NextResponse.json({
+            success: true,
+            shortDescription: {
+              en: cleanAIOutput(result?.shortDescription?.en || currentShortEn),
+              ar: cleanAIOutput(result?.shortDescription?.ar || currentShortAr),
+            },
+            fullDescription: {
+              en: cleanAIOutput(result?.fullDescription?.en || currentFullEn),
+              ar: cleanAIOutput(result?.fullDescription?.ar || currentFullAr),
+            },
+          });
         }
-
-        const data = await response.json();
-        const contentStr = data?.choices?.[0]?.message?.content;
-        const result = JSON.parse(contentStr);
-
-        return NextResponse.json({
-          success: true,
-          shortDescription: {
-            en: cleanOutputString(result?.shortDescription?.en || currentShortEn),
-            ar: cleanOutputString(result?.shortDescription?.ar || currentShortAr),
-          },
-          fullDescription: {
-            en: cleanOutputString(result?.fullDescription?.en || currentFullEn),
-            ar: cleanOutputString(result?.fullDescription?.ar || currentFullAr),
-          },
-        });
-      } catch (err: any) {
-        console.error("OpenAI API call failed, falling back to local engine:", err);
+      } catch (err: unknown) {
+        logError("AI-Rewrite", err, { action, appTitleEn });
+        // Fall through to local engine
       }
     }
 
@@ -373,13 +342,10 @@ ${verdictAr}`;
       },
     });
   } catch (error) {
-    console.error("AI_REWRITE_CONTENT_ERROR", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error instanceof Error ? error.message : "Failed to rewrite content",
-      },
-      { status: 500 }
+    logError("AI-Rewrite", error);
+    return createApiError(
+      error instanceof Error ? error.message : "Failed to rewrite content",
+      500
     );
   }
 }

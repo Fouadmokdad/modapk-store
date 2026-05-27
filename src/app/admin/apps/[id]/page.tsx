@@ -226,6 +226,39 @@ export default function AdminAppEditPage() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
 
+  // Package name uniqueness check
+  const [checkingPackage, setCheckingPackage] = useState(false);
+  const [packageError, setPackageError] = useState("");
+
+  const handlePackageBlur = async () => {
+    const pkg = form.packageName?.trim();
+    if (!pkg) {
+      setPackageError("");
+      return;
+    }
+    const pkgRegex = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
+    if (!pkgRegex.test(pkg)) {
+      setPackageError("Invalid package name format (e.g., com.example.app)");
+      return;
+    }
+
+    setCheckingPackage(true);
+    setPackageError("");
+    try {
+      const url = `/api/apps/check-package?packageName=${pkg}` + (isEdit ? `&excludeId=${appId}` : "");
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json?.success && json.data?.exists) {
+        const appTitle = json.data.app?.title?.en || json.data.app?.title?.ar || "another app";
+        setPackageError(`Package name is already in use by "${appTitle}"`);
+      }
+    } catch (err) {
+      console.error("Error checking package:", err);
+    } finally {
+      setCheckingPackage(false);
+    }
+  };
+
   // AI Rewrite Content States
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -334,6 +367,22 @@ export default function AdminAppEditPage() {
     setSaving(true);
     setError("");
 
+    // Frontend packageName duplicate check (basic format validation)
+    if (form.packageName && form.packageName.trim() !== "") {
+      const pkgRegex = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
+      if (!pkgRegex.test(form.packageName.trim())) {
+        setError("Invalid package name format (e.g., com.example.app)");
+        setSaving(false);
+        return;
+      }
+    }
+
+    if (packageError) {
+      setError(packageError);
+      setSaving(false);
+      return;
+    }
+
     try {
       const url = isEdit ? `/api/apps/${appId}` : "/api/apps";
       const method = isEdit ? "PUT" : "POST";
@@ -346,7 +395,7 @@ export default function AdminAppEditPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error || "Failed to save");
+        setError(json.error || json.message || "Failed to save");
         return;
       }
 
@@ -643,11 +692,26 @@ export default function AdminAppEditPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Package Name</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
+                  Package Name {checkingPackage && <span className="animate-spin inline-block ml-1">🌀</span>}
+                </label>
                 <input type="text" value={form.packageName}
-                  onChange={(e) => updateField("packageName", e.target.value)}
+                  onChange={(e) => {
+                    updateField("packageName", e.target.value);
+                    if (packageError) setPackageError("");
+                  }}
+                  onBlur={handlePackageBlur}
                   placeholder="com.example.app"
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{
+                    ...inputStyle,
+                    borderColor: packageError ? "hsl(0 84% 60%)" : "hsl(var(--color-border))",
+                  }} />
+                {packageError && (
+                  <p className="text-[10px] text-red-500 font-semibold mt-1">
+                    ⚠️ {packageError}
+                  </p>
+                )}
               </div>
             </div>
 

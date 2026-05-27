@@ -6,6 +6,8 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
+import { logError } from "./error-utils";
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -13,6 +15,10 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient(): PrismaClient {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
+  });
+
+  pool.on("error", (err) => {
+    logError("Database Pool", err);
   });
 
   const adapter = new PrismaPg(pool);

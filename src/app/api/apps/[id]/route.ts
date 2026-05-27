@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { appSchema, appStatusSchema } from "@/lib/validators";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
+import { Prisma } from "@prisma/client";
+import { createApiResponse, createApiError, handlePrismaError } from "@/lib/error-utils";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -45,16 +47,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!app) {
-      return NextResponse.json({ error: "App not found" }, { status: 404 });
+      return createApiError("App not found", 404);
     }
 
-    return NextResponse.json({ data: app });
+    return createApiResponse(app);
   } catch (error) {
     console.error("GET /api/apps/[id] error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch app" },
-      { status: 500 }
-    );
+    const prismaResponse = handlePrismaError(error);
+    if (prismaResponse) return prismaResponse;
+    return createApiError("Failed to fetch app", 500);
   }
 }
 
@@ -66,12 +67,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !hasPermission(session.user.role, "edit:apps")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiError("Unauthorized", 401);
     }
 
     const existing = await db.app.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "App not found" }, { status: 404 });
+      return createApiError("App not found", 404);
     }
 
     const body = await request.json();
@@ -83,10 +84,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         where: { slug: validated.slug },
       });
       if (slugExists) {
-        return NextResponse.json(
-          { error: "This slug is already in use" },
-          { status: 409 }
-        );
+        return createApiError("This slug is already in use", 409);
+      }
+    }
+
+    // Check packageName uniqueness (excluding self)
+    if (validated.packageName && validated.packageName.trim() !== "" && validated.packageName !== existing.packageName) {
+      const pkgExists = await db.app.findFirst({
+        where: {
+          packageName: validated.packageName.trim(),
+          NOT: { id },
+        },
+      });
+      if (pkgExists) {
+        return createApiError("Package name already used by another app", 409);
       }
     }
 
@@ -146,28 +157,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    return NextResponse.json({ data: app });
+    return createApiResponse(app);
   } catch (error) {
     console.error('UPDATE_APP_ERROR', error);
 
+    const prismaResponse = handlePrismaError(error);
+    if (prismaResponse) return prismaResponse;
+
     if (error && typeof error === "object" && "issues" in error) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: "Validation failed", 
-          details: error,
-          message: "Validation failed"
-        },
-        { status: 400 }
-      );
+      return createApiError("Validation failed", 400, error);
     }
 
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Failed to update app' 
-      },
-      { status: 500 }
+    return createApiError(
+      error instanceof Error ? error.message : 'Failed to update app',
+      500
     );
   }
 }
@@ -180,7 +183,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !hasPermission(session.user.role, "edit:apps")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiError("Unauthorized", 401);
     }
 
     const body = await request.json();
@@ -188,7 +191,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const existing = await db.app.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "App not found" }, { status: 404 });
+      return createApiError("App not found", 404);
     }
 
     const app = await db.app.update({
@@ -222,13 +225,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    return NextResponse.json({ data: app });
+    return createApiResponse(app);
   } catch (error) {
     console.error("PATCH /api/apps/[id] error:", error);
-    return NextResponse.json(
-      { error: "Failed to update status" },
-      { status: 500 }
-    );
+    const prismaResponse = handlePrismaError(error);
+    if (prismaResponse) return prismaResponse;
+    return createApiError("Failed to update status", 500);
   }
 }
 
@@ -240,12 +242,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !hasPermission(session.user.role, "delete:apps")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiError("Unauthorized", 401);
     }
 
     const existing = await db.app.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "App not found" }, { status: 404 });
+      return createApiError("App not found", 404);
     }
 
     await db.app.delete({ where: { id } });
@@ -258,12 +260,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       request
     );
 
-    return NextResponse.json({ data: { message: "App deleted successfully" } });
+    return createApiResponse({ message: "App deleted successfully" });
   } catch (error) {
     console.error("DELETE /api/apps/[id] error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete app" },
-      { status: 500 }
-    );
+    const prismaResponse = handlePrismaError(error);
+    if (prismaResponse) return prismaResponse;
+    return createApiError("Failed to delete app", 500);
   }
 }
