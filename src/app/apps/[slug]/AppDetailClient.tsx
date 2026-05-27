@@ -137,6 +137,115 @@ function SocialShareRow({ title }: { title: string }) {
   );
 }
 
+// ─── Premium MOD Menu Features Accordion ──────────────────────────────────────
+function ModMenuCard({ text, locale }: { text: string; locale: string }) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  const features = React.useMemo(() => {
+    if (!text) return [];
+    let cleaned = text.replace(/^⚠️\s*/, "").replace(/^MOD Menu:?\s*/i, "").trim();
+    
+    // Split by common separators if present
+    if (/[•\n,;-]/.test(cleaned)) {
+      return cleaned
+        .split(/[•\n,;-]+/)
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+    
+    // Split before keywords using regex lookahead
+    const keywords = /(?=Unlimited|Unlock|No Ads|Always|Big Amount|Free|God |Mega |Anti-Ban|Menu)/i;
+    const items = cleaned.split(keywords).map(item => item.trim()).filter(Boolean);
+    
+    return items.length > 1 ? items : [cleaned];
+  }, [text]);
+
+  if (features.length === 0) return null;
+
+  return (
+    <div 
+      className="rounded-2xl border transition-all duration-300 overflow-hidden shadow-lg hover:shadow-[0_8px_30px_rgba(0,229,255,0.06)]"
+      style={{ 
+        background: "linear-gradient(135deg, hsl(262 83% 58% / 0.05), hsl(187 100% 50% / 0.05))",
+        borderColor: "hsl(var(--color-border))"
+      }}
+    >
+      {/* Header (Accordion Toggle) */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4.5 text-start font-bold cursor-pointer transition-colors hover:bg-white/[0.02]"
+        style={{ fontFamily: "Syne, sans-serif" }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xl animate-bounce">⚡</span>
+          <div>
+            <h3 className="text-sm sm:text-base font-extrabold text-white" style={{ letterSpacing: "0.02em" }}>
+              {locale === "ar" ? "قائمة المود (MOD Menu)" : "MOD Menu Features"}
+            </h3>
+            <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+              {locale === "ar" ? "ميزات معدلة مفعلة" : "Premium Unlocked Features"}
+            </span>
+          </div>
+        </div>
+        
+        {/* Toggle Icon */}
+        <div 
+          className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all duration-300"
+          style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Accordion Content Panel */}
+      <div 
+        className={`transition-all duration-500 ease-in-out overflow-hidden ${
+          isOpen ? "max-h-[800px] border-t border-white/[0.04] p-4 opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+        }`}
+        style={{ background: "hsl(var(--color-bg-card) / 0.2)" }}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {features.map((feature, idx) => (
+            <div 
+              key={idx}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border transition-all hover:scale-[1.01] hover:bg-white/[0.02]"
+              style={{ 
+                background: "hsl(var(--color-bg-secondary) / 0.3)", 
+                borderColor: "hsl(var(--color-border) / 0.6)" 
+              }}
+            >
+              {/* Feature Icon Indicator */}
+              <div 
+                className="w-5.5 h-5.5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0"
+                style={{ 
+                  background: "hsl(142 71% 45% / 0.15)", 
+                  color: "hsl(142 71% 45%)",
+                  border: "1px solid hsl(142 71% 45% / 0.25)"
+                }}
+              >
+                ✓
+              </div>
+              
+              {/* Feature Label */}
+              <span className="text-xs font-medium text-neutral-200" style={{ fontFamily: "DM Sans, sans-serif" }}>
+                {feature}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Small safe disclaimer footer */}
+        <div className="mt-3.5 flex items-center gap-1.5 text-[9px] text-neutral-500" style={{ fontFamily: "DM Sans, sans-serif" }}>
+          <span>🛡️</span>
+          <span>{locale === "ar" ? "تم التحقق من جميع الميزات وخلوها من الفيروسات." : "All modifications are verified, safe, and active."}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AppDetailClient({ app, relatedApps }: AppDetailProps) {
   const { locale, t } = useLocale();
   const [screenshotIdx, setScreenshotIdx] = useState(0);
@@ -360,13 +469,23 @@ export default function AppDetailClient({ app, relatedApps }: AppDetailProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ============ LEFT COLUMN ============ */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Disclaimer */}
+            {/* Disclaimer / MOD Menu Accordion */}
             {app.safetyDisclaimer && txt(app.safetyDisclaimer) && (
-              <div className="card-flat p-4 fade-in" style={{ background: "hsl(38 92% 50% / 0.06)", borderColor: "hsl(38 92% 50% / 0.15)" }}>
-                <p className="text-sm font-medium" style={{ color: "hsl(38 92% 50%)" }}>
-                  ⚠️ {txt(app.safetyDisclaimer)}
-                </p>
-              </div>
+              txt(app.safetyDisclaimer).toLowerCase().includes("mod menu") ? (
+                <ModMenuCard text={txt(app.safetyDisclaimer)} locale={locale} />
+              ) : (
+                <div className="card-flat p-4.5 fade-in flex items-start gap-3 rounded-2xl border" 
+                  style={{ 
+                    background: "hsl(38 92% 50% / 0.04)", 
+                    borderColor: "hsl(38 92% 50% / 0.15)" 
+                  }}
+                >
+                  <span className="text-lg">⚠️</span>
+                  <p className="text-xs font-semibold leading-relaxed" style={{ color: "hsl(38 92% 50%)", fontFamily: "DM Sans, sans-serif" }}>
+                    {txt(app.safetyDisclaimer)}
+                  </p>
+                </div>
+              )
             )}
 
             {/* Screenshots */}
