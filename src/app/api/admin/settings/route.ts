@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSiteSettings, updateSiteSettings, settingsSchema } from "@/lib/settings";
+import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity-logger";
 
 /**
  * GET /api/admin/settings — Fetch global configurations (admin only)
@@ -12,7 +14,7 @@ import { getSiteSettings, updateSiteSettings, settingsSchema } from "@/lib/setti
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "manage:settings")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -33,7 +35,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "manage:settings")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -43,6 +45,14 @@ export async function POST(request: NextRequest) {
     const validated = settingsSchema.parse(body);
 
     const updated = await updateSiteSettings(validated);
+
+    // Log setting change
+    await logActivity(
+      session.user.id,
+      "SETTING_CHANGE",
+      `Updated site settings (countdown: ${validated.downloadCountdown})`,
+      request
+    );
 
     return NextResponse.json({
       message: "Settings updated successfully",

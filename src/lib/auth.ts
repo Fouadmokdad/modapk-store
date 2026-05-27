@@ -36,10 +36,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
+        if (!admin.isActive) {
+          throw new Error("Your account has been disabled");
+        }
+
         return {
           id: admin.id,
           email: admin.email,
           name: admin.name,
+          role: admin.role,
+          avatar: admin.avatar,
+          isActive: admin.isActive,
         };
       },
     }),
@@ -60,21 +67,71 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.role = (user as any).role;
+        token.avatar = (user as any).avatar;
+        token.isActive = (user as any).isActive;
       }
+
+      // Handle updating the profile/session dynamically if needed
+      if (trigger === "update" && session) {
+        if (session.name) token.name = session.name;
+        if (session.avatar) token.avatar = session.avatar;
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
+        session.user.role = token.role;
+        session.user.avatar = token.avatar;
+        session.user.isActive = token.isActive;
       }
       return session;
+    },
+  },
+
+  events: {
+    async signIn({ user }) {
+      try {
+        if (user?.id) {
+          await db.admin.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() },
+          });
+          await db.adminActivityLog.create({
+            data: {
+              adminId: user.id,
+              action: "LOGIN",
+              details: "Successfully logged in via credentials",
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Error in NextAuth signIn event:", err);
+      }
+    },
+    async signOut({ token }) {
+      try {
+        if (token?.id) {
+          await db.adminActivityLog.create({
+            data: {
+              adminId: token.id as string,
+              action: "LOGOUT",
+              details: "Logged out from admin panel",
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Error in NextAuth signOut event:", err);
+      }
     },
   },
 

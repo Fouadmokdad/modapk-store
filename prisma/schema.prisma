@@ -17,15 +17,43 @@ datasource db {
 // Authentication
 // =============================================================================
 
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  UPLOADER
+}
+
 model Admin {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String             @id @default(cuid())
+  email        String             @unique
   passwordHash String
   name         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         AdminRole          @default(ADMIN)
+  avatar       String?
+  isActive     Boolean            @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  activityLogs AdminActivityLog[]
 
   @@map("admins")
+}
+
+model AdminActivityLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action    String   // e.g. "LOGIN", "LOGOUT", "APP_CREATE", "APP_DELETE", "SETTING_CHANGE", "ADMIN_CREATE", "ADMIN_DELETE"
+  details   String?  // descriptive string
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_activity_logs")
 }
 
 // =============================================================================

@@ -10,6 +10,9 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
+      role: string;
+      avatar: string | null;
+      isActive: boolean;
     };
   }
 
@@ -17,6 +20,9 @@ declare module "next-auth" {
     id: string;
     email: string;
     name: string;
+    role: string;
+    avatar: string | null;
+    isActive: boolean;
   }
 }
 
@@ -25,5 +31,8 @@ declare module "next-auth/jwt" {
     id: string;
     email: string;
     name: string;
+    role: string;
+    avatar: string | null;
+    isActive: boolean;
   }
 }

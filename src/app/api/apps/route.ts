@@ -169,13 +169,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
+import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity-logger";
+
 /**
  * POST /api/apps — Create a new app (admin only)
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "create:apps")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -223,6 +226,15 @@ export async function POST(request: NextRequest) {
         tags: { include: { tag: true } },
       },
     });
+
+    // Log the app creation action
+    const appTitleStr = typeof app.title === "object" && app.title !== null ? (app.title as any).en || (app.title as any).ar || "" : "";
+    await logActivity(
+      session.user.id,
+      "APP_CREATE",
+      `Created app: ${appTitleStr} (slug: ${app.slug})`,
+      request
+    );
 
     return NextResponse.json({ data: app }, { status: 201 });
   } catch (error) {

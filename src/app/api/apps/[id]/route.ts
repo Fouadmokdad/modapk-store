@@ -6,6 +6,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { appSchema, appStatusSchema } from "@/lib/validators";
+import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity-logger";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -63,7 +65,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "edit:apps")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -125,6 +127,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Log the app edit action
+    const appTitleStr = typeof app.title === "object" && app.title !== null ? (app.title as any).en || (app.title as any).ar || "" : "";
+    await logActivity(
+      session.user.id,
+      "APP_EDIT",
+      `Updated app: ${appTitleStr} (slug: ${app.slug})`,
+      request
+    );
+
     return NextResponse.json({ data: app });
   } catch (error) {
     console.error('UPDATE_APP_ERROR', error);
@@ -158,7 +169,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "edit:apps")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -183,6 +194,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Log status edit action
+    await logActivity(
+      session.user.id,
+      "APP_EDIT",
+      `Changed status of app: ${app.slug} to ${app.status}`,
+      request
+    );
+
     return NextResponse.json({ data: app });
   } catch (error) {
     console.error("PATCH /api/apps/[id] error:", error);
@@ -200,7 +219,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "delete:apps")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -210,6 +229,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     await db.app.delete({ where: { id } });
+
+    // Log deletion action
+    await logActivity(
+      session.user.id,
+      "APP_DELETE",
+      `Deleted app: ${existing.slug} (ID: ${existing.id})`,
+      request
+    );
 
     return NextResponse.json({ data: { message: "App deleted successfully" } });
   } catch (error) {

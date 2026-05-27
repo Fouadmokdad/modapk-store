@@ -52,6 +52,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
+import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity-logger";
+
 /**
  * POST /api/apps/[id]/versions — Add version (admin only)
  */
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session || !hasPermission(session.user.role, "manage:versions")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -108,6 +111,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         downloadMirrors: true,
       },
     });
+
+    // Log version creation
+    await logActivity(
+      session.user.id,
+      "VERSION_CREATE",
+      `Added app version ${version.versionName} to app ID: ${app.id}`,
+      request
+    );
 
     return NextResponse.json({ data: version }, { status: 201 });
   } catch (error) {

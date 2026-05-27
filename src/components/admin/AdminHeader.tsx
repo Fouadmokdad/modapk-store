@@ -4,8 +4,9 @@
 // Admin Header Component
 // =============================================================================
 import React, { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "@/hooks/useTheme";
+import Link from "next/link";
 
 interface AdminHeaderProps {
   onMenuToggle: () => void;
@@ -92,7 +93,7 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
         <div className="relative">
           <button
             onClick={() => setShowProfile(!showProfile)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all cursor-pointer"
             style={{
               background: "transparent",
             }}
@@ -103,14 +104,22 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
               e.currentTarget.style.background = "transparent";
             }}
           >
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"
-              style={{
-                background: "linear-gradient(135deg, hsl(142 71% 45%), hsl(262 83% 58%))",
-              }}
-            >
-              {session?.user?.name?.[0]?.toUpperCase() || "A"}
-            </div>
+            {session?.user?.avatar ? (
+              <img
+                src={session.user.avatar}
+                alt=""
+                className="w-8 h-8 rounded-lg object-cover border border-white/10"
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, hsl(142 71% 45%), hsl(262 83% 58%))",
+                }}
+              >
+                {session?.user?.name?.[0]?.toUpperCase() || "A"}
+              </div>
+            )}
             <span
               className="text-sm font-medium hidden sm:inline"
               style={{ color: "hsl(var(--color-text-primary))" }}
@@ -118,6 +127,66 @@ export function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
               {session?.user?.name || "Admin"}
             </span>
           </button>
+
+          {/* Profile Dropdown Menu */}
+          {showProfile && (
+            <>
+              {/* Back drop to click away */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowProfile(false)}
+              />
+              <div
+                className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 shadow-2xl z-50 p-1.5 animate-slide-down"
+                style={{
+                  background: "hsl(var(--color-bg-card))",
+                }}
+              >
+                {/* Header info */}
+                <div className="px-3 py-2.5">
+                  <p className="text-xs font-bold text-white truncate">
+                    {session?.user?.name}
+                  </p>
+                  <p className="text-[10px] text-neutral-400 truncate mt-0.5">
+                    {session?.user?.email}
+                  </p>
+                  <span className="inline-block mt-2 px-2 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {session?.user?.role?.replace("_", " ")}
+                  </span>
+                </div>
+
+                <div className="border-t border-white/5 my-1" />
+
+                {/* Submenu links */}
+                <Link
+                  href="/admin/my-account"
+                  onClick={() => setShowProfile(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white hover:bg-white/[0.04] transition-all"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  My Account
+                </Link>
+
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    signOut({ callbackUrl: "/admin/login" });
+                  }}
+                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>
