@@ -19,8 +19,13 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        const admin = await db.admin.findUnique({
-          where: { email: credentials.email },
+        const admin = await db.admin.findFirst({
+          where: {
+            OR: [
+              { email: credentials.email.toLowerCase().trim() },
+              { name: credentials.email.trim() }
+            ]
+          }
         });
 
         if (!admin) {

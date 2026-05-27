@@ -7,6 +7,29 @@ import { getToken } from "next-auth/jwt";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  let modifiedHeaders: Headers | null = null;
+
+  // Convert Authorization: Bearer <JWT> token into NextAuth session cookies
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.substring(7).trim();
+    if (token) {
+      request.cookies.set("next-auth.session-token", token);
+      request.cookies.set("__Secure-next-auth.session-token", token);
+
+      modifiedHeaders = new Headers(request.headers);
+      const existingCookie = request.headers.get("cookie") || "";
+      let newCookie = existingCookie;
+      if (!existingCookie.includes("next-auth.session-token")) {
+        newCookie = [
+          existingCookie,
+          `next-auth.session-token=${token}`,
+          `__Secure-next-auth.session-token=${token}`
+        ].filter(Boolean).join("; ");
+      }
+      modifiedHeaders.set("cookie", newCookie);
+    }
+  }
 
   // -------------------------------------------------------------------------
   // Protect admin routes (except login page and auth API)
@@ -55,7 +78,9 @@ export async function middleware(request: NextRequest) {
   // -------------------------------------------------------------------------
   // Security headers
   // -------------------------------------------------------------------------
-  const response = NextResponse.next();
+  const response = modifiedHeaders
+    ? NextResponse.next({ request: { headers: modifiedHeaders } })
+    : NextResponse.next();
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-XSS-Protection", "1; mode=block");
