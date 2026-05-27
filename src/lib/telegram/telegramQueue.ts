@@ -3,7 +3,11 @@
 // =============================================================================
 import { db } from "../db";
 import { getSiteSettings } from "../settings";
-import { generateTelegramPost } from "./telegramTemplates";
+import { 
+  renderTelegramTemplate, 
+  generateTelegramButtons, 
+  DEFAULT_TEMPLATE_SETTINGS 
+} from "./telegramTemplates";
 import { sendTelegramMessage } from "./telegram.service";
 import { addJobToQueue } from "../queue/backgroundJobQueue";
 
@@ -14,7 +18,21 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
   try {
     const settings = await getSiteSettings();
     if (!settings.telegramEnabled) {
-      console.log(`[TelegramQueue] Integration is disabled. Skipping post creation.`);
+      console.log(`[TelegramQueue] Global auto-posting integration is disabled. Skipping.`);
+      return null;
+    }
+
+    // Fetch Template Settings from DB
+    let templateSettings = await db.telegramSettings.findUnique({
+      where: { id: "global" },
+    });
+
+    if (!templateSettings) {
+      templateSettings = DEFAULT_TEMPLATE_SETTINGS as any;
+    }
+
+    if (!templateSettings?.enabled) {
+      console.log(`[TelegramQueue] Telegram template posting is disabled. Skipping.`);
       return null;
     }
 
@@ -69,10 +87,19 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
       androidRequirement: version?.androidRequirement || version?.minAndroid || undefined,
       changelogEn: (version?.changelog as any)?.en || undefined,
       changelogAr: (version?.changelog as any)?.ar || undefined,
+      developer: app.developer || undefined,
+      downloadCount: app.downloadCount ?? 0,
+      publishedAt: app.publishedAt || undefined,
     };
 
-    // Format post text and reply buttons
-    const post = generateTelegramPost(postData, settings as any);
+    // Format post text and reply buttons dynamically
+    const text = renderTelegramTemplate(postData, templateSettings as any);
+    const reply_markup = generateTelegramButtons(app.slug, templateSettings as any);
+
+    // Determine if photo should be attached
+    const photoUrl = settings.telegramIncludeImage
+      ? (app.iconUrl || app.headerImageUrl || null)
+      : null;
 
     // Save PENDING log in database
     const log = await db.telegramLog.create({
@@ -83,14 +110,14 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
         status: "PENDING",
         retryCount: 0,
         payload: {
-          text: post.text,
-          photoUrl: app.iconUrl || app.headerImageUrl || null,
-          reply_markup: post.reply_markup,
+          text,
+          photoUrl,
+          reply_markup,
         } as any,
       },
     });
 
-    console.log(`[TelegramQueue] Queued post for "${log.appName}" (Log ID: ${log.id})`);
+    console.log(`[TelegramQueue] Queued dynamic template post for "${log.appName}" (Log ID: ${log.id})`);
 
     // Dispatch background job
     await addJobToQueue("telegramQueue", "telegramPost", { logId: log.id });

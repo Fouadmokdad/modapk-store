@@ -454,3 +454,38 @@ model TelegramLog {
   @@map("telegram_logs")
 }
 
+// =============================================================================
+// Telegram Posting Template Settings
+// =============================================================================
+
+model TelegramSettings {
+  id                 String   @id @default("global")
+  enabled            Boolean  @default(true)
+  template           String   @db.Text
+  downloadButtonText String   @default("⬇️ DOWNLOAD MOD")
+  websiteButtonText  String   @default("🌐 VISIT PAGE")
+
+  showTitle          Boolean  @default(true)
+  showVersion        Boolean  @default(true)
+  showSize           Boolean  @default(true)
+  showAndroid        Boolean  @default(true)
+  showCategory       Boolean  @default(true)
+  showDate           Boolean  @default(true)
+  showModFeatures    Boolean  @default(true)
+  showChangelog      Boolean  @default(false)
+  showHashtags       Boolean  @default(true)
+  showFooter         Boolean  @default(true)
+
+  titleStyle         String   @default("premium")
+  dateFormat         String   @default("long")
+  footerText         String?  @db.Text
+  hashtagsTemplate   String?  @db.Text
+  categoryEmojis     Json?
+  parseMode          String   @default("HTML")
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("telegram_template_settings")
+}
+
