@@ -32,6 +32,7 @@ export default function AdminAppsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
 
   const fetchApps = useCallback(async () => {
@@ -40,7 +41,7 @@ export default function AdminAppsPage() {
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
-      params.set("limit", "20");
+      params.set("limit", String(limit));
       if (statusFilter) params.set("status", statusFilter);
       if (typeFilter) params.set("type", typeFilter);
       if (search) params.set("q", search);
@@ -64,7 +65,7 @@ export default function AdminAppsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, typeFilter, search]);
+  }, [page, limit, statusFilter, typeFilter, search]);
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
@@ -165,6 +166,18 @@ export default function AdminAppsPage() {
             { value: "GAME", label: "Games" },
           ]}
           className="w-full sm:w-40"
+        />
+        {/* Rows per page */}
+        <CustomSelect
+          value={String(limit)}
+          onChange={(val) => { setLimit(Number(val)); setPage(1); }}
+          options={[
+            { value: "10", label: "10 rows" },
+            { value: "20", label: "20 rows" },
+            { value: "50", label: "50 rows" },
+            { value: "100", label: "100 rows" },
+          ]}
+          className="w-full sm:w-32"
         />
       </div>
 
