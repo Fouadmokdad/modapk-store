@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit, callOpenAI, cachedAICall, cleanAIOutput } from "@/lib/ai-utils";
 import { createApiError, logError } from "@/lib/error-utils";
+import { getSiteSettings } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,10 +48,31 @@ export async function POST(request: NextRequest) {
     const currentFullEn = fullDescription?.en || "";
     const currentFullAr = fullDescription?.ar || "";
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const settings = await getSiteSettings();
+    let apiKey = "";
+    const provider = settings.aiProvider || "GEMINI";
+    const model = settings.aiModel || "gemini-1.5-flash-latest";
+
+    if (settings.aiApiKey) {
+      const { decrypt } = await import("@/lib/encryption");
+      try {
+        apiKey = decrypt(settings.aiApiKey);
+      } catch (e) {
+        apiKey = settings.aiApiKey;
+      }
+    }
+
+    // Fallback to process.env if no key configured in database settings
+    if (!apiKey) {
+      if (provider === "GEMINI") {
+        apiKey = process.env.GEMINI_API_KEY || "";
+      } else {
+        apiKey = process.env.OPENAI_API_KEY || "";
+      }
+    }
 
     if (apiKey) {
-      // --- OPENAI INTEGRATION ---
+      // --- AI API INTEGRATION (Gemini or OpenAI) ---
       const prompt = `
 You are a professional mobile app review editor and SEO copywriter for a premium Android store like APKPure, LiteAPKs, or APKMODY.
 Your goal is to write long-form, editorial-grade, human-written content for the app/game described below.
@@ -131,17 +153,23 @@ AI WRITING & QUALITY RULES:
 
       try {
         // Use cached AI call with retry + backoff
-        const cacheKey = { appTitleEn, action, relType, catName };
+        const cacheKey = { appTitleEn, action, relType, catName, provider, model };
         const result = await cachedAICall(
           cacheKey,
           async () => {
-            const contentStr = await callOpenAI({
-              apiKey,
-              systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
-              userPrompt: prompt,
-              responseFormat: { type: "json_object" },
-            });
-            return JSON.parse(contentStr);
+            if (provider === "GEMINI") {
+              const { callGemini } = await import("@/lib/ai-engine");
+              return await callGemini(prompt, apiKey);
+            } else {
+              const contentStr = await callOpenAI({
+                apiKey,
+                model: model || "gpt-4o-mini",
+                systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
+                userPrompt: prompt,
+                responseFormat: { type: "json_object" },
+              });
+              return JSON.parse(contentStr);
+            }
           },
           null // null fallback = will use local engine below
         );
@@ -160,7 +188,7 @@ AI WRITING & QUALITY RULES:
           });
         }
       } catch (err: unknown) {
-        logError("AI-Rewrite", err, { action, appTitleEn });
+        logError("AI-Rewrite", err, { action, appTitleEn, provider });
         // Fall through to local engine
       }
     }

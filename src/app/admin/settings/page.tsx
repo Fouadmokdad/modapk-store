@@ -16,6 +16,7 @@ const sections = [
   { id: "legal", label: "⚖️ Legal & Footer", desc: "Safety warnings, global disclaimers, and footer copyrights" },
   { id: "socials", label: "📱 Social Networks", desc: "Site connection urls for social media feeds" },
   { id: "telegram", label: "📢 Telegram", desc: "Configure Telegram channel auto-posting, bot tokens, and content layouts" },
+  { id: "ai", label: "✨ AI Assistant", desc: "Configure custom OpenAI/Gemini credentials and models for description rewrites" },
 ];
 
 export default function AdminSettingsPage() {
@@ -775,6 +776,64 @@ export default function AdminSettingsPage() {
                     <span className="text-xs text-neutral-300">Auto-pin important posts</span>
                   </label>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ============ AI ASSISTANT ============ */}
+          {activeSection === "ai" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
+                  AI Provider *
+                </label>
+                <select
+                  value={settings.aiProvider || "GEMINI"}
+                  required
+                  onChange={(e) => updateSetting((prev) => ({ ...prev, aiProvider: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={inputStyle}
+                >
+                  <option value="GEMINI">Google Gemini (Recommended / Free Tier Available)</option>
+                  <option value="OPENAI">OpenAI (ChatGPT)</option>
+                </select>
+                <p className="text-[10px] mt-1.5" style={{ color: "hsl(var(--color-text-tertiary))" }}>
+                  Gemini 1.5 Flash provides a highly generous free tier (15 RPM / 1M tokens/day) suitable for description rewrites.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
+                  AI API Key
+                </label>
+                <input
+                  type="password"
+                  value={settings.aiApiKey || ""}
+                  placeholder={settings.aiApiKey ? "••••••••••••••••" : "Paste your API Key here..."}
+                  onChange={(e) => updateSetting((prev) => ({ ...prev, aiApiKey: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
+                  style={inputStyle}
+                />
+                <p className="text-[10px] mt-1.5" style={{ color: "hsl(var(--color-text-tertiary))" }}>
+                  Your API key is securely encrypted at rest. If left blank, the system will fall back to environment variables (`GEMINI_API_KEY` or `OPENAI_API_KEY`).
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
+                  AI Model Name
+                </label>
+                <input
+                  type="text"
+                  value={settings.aiModel || ""}
+                  placeholder={settings.aiProvider === "OPENAI" ? "gpt-4o-mini" : "gemini-1.5-flash-latest"}
+                  onChange={(e) => updateSetting((prev) => ({ ...prev, aiModel: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={inputStyle}
+                />
+                <p className="text-[10px] mt-1.5" style={{ color: "hsl(var(--color-text-tertiary))" }}>
+                  Defaults: `gemini-1.5-flash-latest` for Gemini, or `gpt-4o-mini` for OpenAI.
+                </p>
               </div>
             </div>
           )}

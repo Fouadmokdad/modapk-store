@@ -20,10 +20,11 @@ export async function GET() {
 
     const settings = await getSiteSettings();
     
-    // Mask the Telegram Bot Token for security before sending to frontend
+    // Mask the Telegram Bot Token and AI API Key for security before sending to frontend
     const maskedSettings = {
       ...settings,
       telegramBotToken: settings.telegramBotToken ? "••••••••••••••••" : "",
+      aiApiKey: settings.aiApiKey ? "••••••••••••••••" : "",
     };
 
     return NextResponse.json({ data: maskedSettings });
@@ -60,6 +61,16 @@ export async function POST(request: NextRequest) {
       validated.telegramBotToken = encrypt(validated.telegramBotToken);
     } else {
       validated.telegramBotToken = "";
+    }
+
+    // Secure AI API Key encryption / preservation
+    if (validated.aiApiKey === "••••••••••••••••" || validated.aiApiKey === "__MASKED__") {
+      validated.aiApiKey = existing.aiApiKey;
+    } else if (validated.aiApiKey) {
+      const { encrypt } = await import("@/lib/encryption");
+      validated.aiApiKey = encrypt(validated.aiApiKey);
+    } else {
+      validated.aiApiKey = "";
     }
 
     const updated = await updateSiteSettings(validated);

@@ -392,6 +392,11 @@ model Setting {
   telegramSilentPost             Boolean   @default(false)
   telegramPinPost                Boolean   @default(false)
 
+  // AI Rewrite Settings
+  aiProvider                     String    @default("GEMINI") // GEMINI, OPENAI
+  aiApiKey                       String?   @default("")
+  aiModel                        String?   @default("gemini-1.5-flash-latest")
+
   updatedAt        DateTime @updatedAt
 
   @@map("settings")

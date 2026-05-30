@@ -53,6 +53,11 @@ export const settingsSchema = z.object({
   telegramIncludeChangelog: z.boolean().default(true),
   telegramSilentPost: z.boolean().default(false),
   telegramPinPost: z.boolean().default(false),
+
+  // AI Rewrite Settings
+  aiProvider: z.string().default("GEMINI"),
+  aiApiKey: z.string().nullable().optional().default(""),
+  aiModel: z.string().nullable().optional().default("gemini-1.5-flash-latest"),
 });
 
 export type SiteSettings = z.infer<typeof settingsSchema>;
@@ -109,6 +114,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   telegramIncludeChangelog: true,
   telegramSilentPost: false,
   telegramPinPost: false,
+  aiProvider: "GEMINI",
+  aiApiKey: "",
+  aiModel: "gemini-1.5-flash-latest",
 };
 
 // -----------------------------------------------------------------------------
@@ -151,6 +159,9 @@ async function fetchSettingsRaw(): Promise<SiteSettings> {
       telegramIncludeChangelog: record.telegramIncludeChangelog ?? DEFAULT_SETTINGS.telegramIncludeChangelog,
       telegramSilentPost: record.telegramSilentPost ?? DEFAULT_SETTINGS.telegramSilentPost,
       telegramPinPost: record.telegramPinPost ?? DEFAULT_SETTINGS.telegramPinPost,
+      aiProvider: record.aiProvider ?? DEFAULT_SETTINGS.aiProvider,
+      aiApiKey: record.aiApiKey ?? DEFAULT_SETTINGS.aiApiKey,
+      aiModel: record.aiModel ?? DEFAULT_SETTINGS.aiModel,
     };
   } catch (err) {
     console.error("⚠️ Failed to load settings from DB. Returning fallback defaults:", err);
@@ -207,6 +218,9 @@ export async function updateSiteSettings(data: Partial<SiteSettings>): Promise<S
       telegramIncludeChangelog: validated.telegramIncludeChangelog,
       telegramSilentPost: validated.telegramSilentPost,
       telegramPinPost: validated.telegramPinPost,
+      aiProvider: validated.aiProvider,
+      aiApiKey: validated.aiApiKey,
+      aiModel: validated.aiModel,
     },
     update: {
       siteTitle: validated.siteTitle as any,
@@ -233,6 +247,9 @@ export async function updateSiteSettings(data: Partial<SiteSettings>): Promise<S
       telegramIncludeChangelog: validated.telegramIncludeChangelog,
       telegramSilentPost: validated.telegramSilentPost,
       telegramPinPost: validated.telegramPinPost,
+      aiProvider: validated.aiProvider,
+      aiApiKey: validated.aiApiKey,
+      aiModel: validated.aiModel,
     },
   });
 
