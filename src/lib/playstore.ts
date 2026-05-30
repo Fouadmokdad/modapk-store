@@ -5,6 +5,115 @@
 // Maps Play Store data to our App schema format
 // =============================================================================
 import gplay from "google-play-scraper";
+import * as cheerio from "cheerio";
+import { fetchSafeHtml } from "./importers/security";
+
+function cleanTitleForSearch(title: string): string {
+  let clean = title.split(/[-:|]/)[0].trim();
+  clean = clean.replace(/[^a-zA-Z0-9\s]/g, "");
+  const words = clean.split(/\s+/);
+  if (words.length > 3) {
+    clean = words.slice(0, 3).join(" ");
+  }
+  return clean.trim();
+}
+
+function isTitleMatch(titleA: string, titleB: string): boolean {
+  const normA = titleA.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normB = titleB.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!normA || !normB) return false;
+  return normA.includes(normB) || normB.includes(normA);
+}
+
+function formatSize(sizeStr: string): string {
+  const cleaned = sizeStr.trim();
+  const numPart = cleaned.match(/^[0-9\.]+/)?.[0] || "";
+  const unitPart = cleaned.replace(numPart, "").trim().toLowerCase();
+  
+  if (unitPart === "m" || unitPart === "mb") {
+    return `${numPart} MB`;
+  }
+  if (unitPart === "g" || unitPart === "gb") {
+    return `${numPart} GB`;
+  }
+  if (unitPart === "k" || unitPart === "kb") {
+    return `${numPart} KB`;
+  }
+  return cleaned;
+}
+
+async function fallbackSizeFromThirdParty(packageName: string, appTitle?: string): Promise<string | null> {
+  const searchQueries: string[] = [];
+  if (appTitle) {
+    searchQueries.push(cleanTitleForSearch(appTitle));
+    searchQueries.push(appTitle);
+  }
+  const lastPart = packageName.split(".").pop();
+  if (lastPart) {
+    searchQueries.push(lastPart);
+  }
+
+  // 1. Try LiteAPKs Search
+  for (const query of searchQueries) {
+    try {
+      const url = `https://liteapks.com/?s=${encodeURIComponent(query)}`;
+      const html = await fetchSafeHtml(url);
+      const $ = cheerio.load(html);
+      let sizeResult: string | null = null;
+      
+      $("article, a").each((_, elem) => {
+        const cardTitle = $(elem).find("h2").text().trim();
+        if (cardTitle && (!appTitle || isTitleMatch(cardTitle, appTitle))) {
+          // Find the size element inside the card
+          $(elem).find("span").each((_, spanElem) => {
+            const text = $(spanElem).text().trim();
+            const match = text.match(/^([0-9\.]+\s*(m|mb|gb|kb|g|k))$/i);
+            if (match) {
+              sizeResult = formatSize(match[1]);
+              return false; // break inner each
+            }
+          });
+          if (sizeResult) return false; // break outer each
+        }
+      });
+
+      if (sizeResult) {
+        return sizeResult;
+      }
+    } catch (e) {
+      console.warn(`LiteAPKs fallback failed for query "${query}":`, e);
+    }
+  }
+
+  // 2. Try GetModsAPK Search
+  for (const query of searchQueries) {
+    try {
+      const url = `https://getmodsapk.com/?s=${encodeURIComponent(query)}`;
+      const html = await fetchSafeHtml(url);
+      const $ = cheerio.load(html);
+      let sizeResult: string | null = null;
+
+      $("a").each((_, elem) => {
+        const text = $(elem).text().replace(/\s+/g, ' ');
+        if (text.toLowerCase().includes("size:") && (text.toLowerCase().includes(query.toLowerCase()) || (appTitle && isTitleMatch(text, appTitle)))) {
+          const match = text.match(/size:\s*([0-9\.]+\s*(mb|gb|kb))/i);
+          if (match) {
+            sizeResult = formatSize(match[1]);
+            return false; // break each
+          }
+        }
+      });
+
+      if (sizeResult) {
+        return sizeResult;
+      }
+    } catch (e) {
+      console.warn(`GetModsAPK fallback failed for query "${query}":`, e);
+    }
+  }
+
+  return null;
+}
 
 export interface PlayStoreAppData {
   packageName: string;
@@ -43,6 +152,14 @@ export async function fetchAppFromPlayStore(
       country: "us",
     });
 
+    let size = result.size || "Varies";
+    if (!size || size.toLowerCase().includes("varies")) {
+      const fallbackSize = await fallbackSizeFromThirdParty(packageName, result.title);
+      if (fallbackSize) {
+        size = fallbackSize;
+      }
+    }
+
     return {
       packageName: result.appId,
       title: result.title || "",
@@ -62,7 +179,7 @@ export async function fetchAppFromPlayStore(
       installs: result.installs || "",
       version: result.version || "Varies",
       androidVersion: result.androidVersion || "5.0",
-      size: result.size || "Varies",
+      size: size,
       updated: new Date(result.updated || Date.now()),
       released: result.released || null,
     };
