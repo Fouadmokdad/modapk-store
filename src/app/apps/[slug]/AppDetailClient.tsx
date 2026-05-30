@@ -31,6 +31,7 @@ interface AppDetailProps {
     type: string;
     releaseType: string;
     safetyDisclaimer: { en: string; ar: string } | null;
+    modFeatures?: { en: string; ar: string }[] | null;
     category: { name: { en: string; ar: string }; slug: string } | null;
     tags: { tag: { name: { en: string; ar: string }; slug: string } }[];
     versions: {
@@ -486,6 +487,64 @@ export default function AppDetailClient({ app, relatedApps }: AppDetailProps) {
                   </p>
                 </div>
               )
+            )}
+
+            {/* MOD Features Card */}
+            {Array.isArray(app.modFeatures) && app.modFeatures.length > 0 && (
+              <div 
+                className="rounded-2xl border transition-all duration-300 overflow-hidden shadow-lg hover:shadow-[0_8px_30px_rgba(16,185,129,0.06)]"
+                style={{ 
+                  background: "linear-gradient(135deg, hsl(142 71% 45% / 0.05), hsl(262 83% 58% / 0.05))",
+                  borderColor: "hsl(var(--color-border))"
+                }}
+              >
+                <div className="p-4.5 font-bold" style={{ fontFamily: "Syne, sans-serif" }}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl animate-pulse">✨</span>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-extrabold text-white" style={{ letterSpacing: "0.02em" }}>
+                        {locale === "ar" ? "مميزات التعديل (MOD Features)" : "MOD Features"}
+                      </h3>
+                      <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                        {locale === "ar" ? "ميزات معدلة مفعلة" : "Premium Unlocked Features"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t border-white/[0.04] p-4 opacity-100" style={{ background: "hsl(var(--color-bg-card) / 0.2)" }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {app.modFeatures.map((feat: any, idx: number) => {
+                      const featureText = txt(feat);
+                      if (!featureText) return null;
+                      return (
+                        <div 
+                          key={idx}
+                          className="flex items-center gap-2.5 p-2.5 rounded-xl border transition-all hover:scale-[1.01] hover:bg-white/[0.02]"
+                          style={{ 
+                            background: "hsl(var(--color-bg-secondary) / 0.3)", 
+                            borderColor: "hsl(var(--color-border) / 0.6)" 
+                          }}
+                        >
+                          <div 
+                            className="w-5.5 h-5.5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0"
+                            style={{ 
+                              background: "hsl(142 71% 45% / 0.15)", 
+                              color: "hsl(142 71% 45%)",
+                              border: "1px solid hsl(142 71% 45% / 0.25)"
+                            }}
+                          >
+                            ✓
+                          </div>
+                          <span className="text-xs font-medium text-neutral-200" style={{ fontFamily: "DM Sans, sans-serif" }}>
+                            {featureText}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Screenshots */}
