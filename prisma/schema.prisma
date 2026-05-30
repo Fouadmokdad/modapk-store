@@ -393,9 +393,17 @@ model Setting {
   telegramPinPost                Boolean   @default(false)
 
   // AI Rewrite Settings
-  aiProvider                     String    @default("GEMINI") // GEMINI, OPENAI
+  aiProvider                     String    @default("AUTO") // AUTO, GEMINI, OPENAI, GROQ, OPENROUTER
   aiApiKey                       String?   @default("")
   aiModel                        String?   @default("gemini-1.5-flash-latest")
+  aiGeminiKey                    String?   @default("")
+  aiGeminiModel                  String?   @default("gemini-1.5-flash-latest")
+  aiOpenAiKey                    String?   @default("")
+  aiOpenAiModel                  String?   @default("gpt-4o-mini")
+  aiGroqKey                      String?   @default("")
+  aiGroqModel                    String?   @default("llama-3.3-70b-versatile")
+  aiOpenRouterKey                String?   @default("")
+  aiOpenRouterModel              String?   @default("openrouter/free")
 
   updatedAt        DateTime @updatedAt
 

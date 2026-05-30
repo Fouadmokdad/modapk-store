@@ -55,9 +55,17 @@ export const settingsSchema = z.object({
   telegramPinPost: z.boolean().default(false),
 
   // AI Rewrite Settings
-  aiProvider: z.string().default("GEMINI"),
+  aiProvider: z.string().default("AUTO"),
   aiApiKey: z.string().nullable().optional().default(""),
   aiModel: z.string().nullable().optional().default("gemini-1.5-flash-latest"),
+  aiGeminiKey: z.string().nullable().optional().default(""),
+  aiGeminiModel: z.string().nullable().optional().default("gemini-1.5-flash-latest"),
+  aiOpenAiKey: z.string().nullable().optional().default(""),
+  aiOpenAiModel: z.string().nullable().optional().default("gpt-4o-mini"),
+  aiGroqKey: z.string().nullable().optional().default(""),
+  aiGroqModel: z.string().nullable().optional().default("llama-3.3-70b-versatile"),
+  aiOpenRouterKey: z.string().nullable().optional().default(""),
+  aiOpenRouterModel: z.string().nullable().optional().default("openrouter/free"),
 });
 
 export type SiteSettings = z.infer<typeof settingsSchema>;
@@ -114,9 +122,17 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   telegramIncludeChangelog: true,
   telegramSilentPost: false,
   telegramPinPost: false,
-  aiProvider: "GEMINI",
+  aiProvider: "AUTO",
   aiApiKey: "",
   aiModel: "gemini-1.5-flash-latest",
+  aiGeminiKey: "",
+  aiGeminiModel: "gemini-1.5-flash-latest",
+  aiOpenAiKey: "",
+  aiOpenAiModel: "gpt-4o-mini",
+  aiGroqKey: "",
+  aiGroqModel: "llama-3.3-70b-versatile",
+  aiOpenRouterKey: "",
+  aiOpenRouterModel: "openrouter/free",
 };
 
 // -----------------------------------------------------------------------------
@@ -162,6 +178,14 @@ async function fetchSettingsRaw(): Promise<SiteSettings> {
       aiProvider: record.aiProvider ?? DEFAULT_SETTINGS.aiProvider,
       aiApiKey: record.aiApiKey ?? DEFAULT_SETTINGS.aiApiKey,
       aiModel: record.aiModel ?? DEFAULT_SETTINGS.aiModel,
+      aiGeminiKey: record.aiGeminiKey ?? DEFAULT_SETTINGS.aiGeminiKey,
+      aiGeminiModel: record.aiGeminiModel ?? DEFAULT_SETTINGS.aiGeminiModel,
+      aiOpenAiKey: record.aiOpenAiKey ?? DEFAULT_SETTINGS.aiOpenAiKey,
+      aiOpenAiModel: record.aiOpenAiModel ?? DEFAULT_SETTINGS.aiOpenAiModel,
+      aiGroqKey: record.aiGroqKey ?? DEFAULT_SETTINGS.aiGroqKey,
+      aiGroqModel: record.aiGroqModel ?? DEFAULT_SETTINGS.aiGroqModel,
+      aiOpenRouterKey: record.aiOpenRouterKey ?? DEFAULT_SETTINGS.aiOpenRouterKey,
+      aiOpenRouterModel: record.aiOpenRouterModel ?? DEFAULT_SETTINGS.aiOpenRouterModel,
     };
   } catch (err) {
     console.error("⚠️ Failed to load settings from DB. Returning fallback defaults:", err);
@@ -221,6 +245,14 @@ export async function updateSiteSettings(data: Partial<SiteSettings>): Promise<S
       aiProvider: validated.aiProvider,
       aiApiKey: validated.aiApiKey,
       aiModel: validated.aiModel,
+      aiGeminiKey: validated.aiGeminiKey,
+      aiGeminiModel: validated.aiGeminiModel,
+      aiOpenAiKey: validated.aiOpenAiKey,
+      aiOpenAiModel: validated.aiOpenAiModel,
+      aiGroqKey: validated.aiGroqKey,
+      aiGroqModel: validated.aiGroqModel,
+      aiOpenRouterKey: validated.aiOpenRouterKey,
+      aiOpenRouterModel: validated.aiOpenRouterModel,
     },
     update: {
       siteTitle: validated.siteTitle as any,
@@ -250,6 +282,14 @@ export async function updateSiteSettings(data: Partial<SiteSettings>): Promise<S
       aiProvider: validated.aiProvider,
       aiApiKey: validated.aiApiKey,
       aiModel: validated.aiModel,
+      aiGeminiKey: validated.aiGeminiKey,
+      aiGeminiModel: validated.aiGeminiModel,
+      aiOpenAiKey: validated.aiOpenAiKey,
+      aiOpenAiModel: validated.aiOpenAiModel,
+      aiGroqKey: validated.aiGroqKey,
+      aiGroqModel: validated.aiGroqModel,
+      aiOpenRouterKey: validated.aiOpenRouterKey,
+      aiOpenRouterModel: validated.aiOpenRouterModel,
     },
   });
 

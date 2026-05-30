@@ -20,11 +20,15 @@ export async function GET() {
 
     const settings = await getSiteSettings();
     
-    // Mask the Telegram Bot Token and AI API Key for security before sending to frontend
+    // Mask the Telegram Bot Token and AI API Keys for security before sending to frontend
     const maskedSettings = {
       ...settings,
       telegramBotToken: settings.telegramBotToken ? "••••••••••••••••" : "",
       aiApiKey: settings.aiApiKey ? "••••••••••••••••" : "",
+      aiGeminiKey: settings.aiGeminiKey ? "••••••••••••••••" : "",
+      aiOpenAiKey: settings.aiOpenAiKey ? "••••••••••••••••" : "",
+      aiGroqKey: settings.aiGroqKey ? "••••••••••••••••" : "",
+      aiOpenRouterKey: settings.aiOpenRouterKey ? "••••••••••••••••" : "",
     };
 
     return NextResponse.json({ data: maskedSettings });
@@ -71,6 +75,46 @@ export async function POST(request: NextRequest) {
       validated.aiApiKey = encrypt(validated.aiApiKey);
     } else {
       validated.aiApiKey = "";
+    }
+
+    // Secure aiGeminiKey encryption / preservation
+    if (validated.aiGeminiKey === "••••••••••••••••" || validated.aiGeminiKey === "__MASKED__") {
+      validated.aiGeminiKey = existing.aiGeminiKey;
+    } else if (validated.aiGeminiKey) {
+      const { encrypt } = await import("@/lib/encryption");
+      validated.aiGeminiKey = encrypt(validated.aiGeminiKey);
+    } else {
+      validated.aiGeminiKey = "";
+    }
+
+    // Secure aiOpenAiKey encryption / preservation
+    if (validated.aiOpenAiKey === "••••••••••••••••" || validated.aiOpenAiKey === "__MASKED__") {
+      validated.aiOpenAiKey = existing.aiOpenAiKey;
+    } else if (validated.aiOpenAiKey) {
+      const { encrypt } = await import("@/lib/encryption");
+      validated.aiOpenAiKey = encrypt(validated.aiOpenAiKey);
+    } else {
+      validated.aiOpenAiKey = "";
+    }
+
+    // Secure aiGroqKey encryption / preservation
+    if (validated.aiGroqKey === "••••••••••••••••" || validated.aiGroqKey === "__MASKED__") {
+      validated.aiGroqKey = existing.aiGroqKey;
+    } else if (validated.aiGroqKey) {
+      const { encrypt } = await import("@/lib/encryption");
+      validated.aiGroqKey = encrypt(validated.aiGroqKey);
+    } else {
+      validated.aiGroqKey = "";
+    }
+
+    // Secure aiOpenRouterKey encryption / preservation
+    if (validated.aiOpenRouterKey === "••••••••••••••••" || validated.aiOpenRouterKey === "__MASKED__") {
+      validated.aiOpenRouterKey = existing.aiOpenRouterKey;
+    } else if (validated.aiOpenRouterKey) {
+      const { encrypt } = await import("@/lib/encryption");
+      validated.aiOpenRouterKey = encrypt(validated.aiOpenRouterKey);
+    } else {
+      validated.aiOpenRouterKey = "";
     }
 
     const updated = await updateSiteSettings(validated);

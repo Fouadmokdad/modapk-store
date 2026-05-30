@@ -782,59 +782,146 @@ export default function AdminSettingsPage() {
 
           {/* ============ AI ASSISTANT ============ */}
           {activeSection === "ai" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
-                  AI Provider *
+                  AI Provider Mode *
                 </label>
                 <select
-                  value={settings.aiProvider || "GEMINI"}
+                  value={settings.aiProvider || "AUTO"}
                   required
                   onChange={(e) => updateSetting((prev) => ({ ...prev, aiProvider: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
                   style={inputStyle}
                 >
-                  <option value="GEMINI">Google Gemini (Recommended / Free Tier Available)</option>
-                  <option value="OPENAI">OpenAI (ChatGPT)</option>
+                  <option value="AUTO">🤖 Auto Fallback (Try active keys sequentially)</option>
+                  <option value="GEMINI">Google Gemini API</option>
+                  <option value="GROQ">Groq API (Ultra Fast)</option>
+                  <option value="OPENAI">OpenAI API (ChatGPT)</option>
+                  <option value="OPENROUTER">OpenRouter API</option>
                 </select>
                 <p className="text-[10px] mt-1.5" style={{ color: "hsl(var(--color-text-tertiary))" }}>
-                  Gemini 1.5 Flash provides a highly generous free tier (15 RPM / 1M tokens/day) suitable for description rewrites.
+                  When set to Auto, the backend will sequentially fall back through your keys: Gemini ➔ Groq ➔ OpenAI ➔ OpenRouter.
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
-                  AI API Key
-                </label>
-                <input
-                  type="password"
-                  value={settings.aiApiKey || ""}
-                  placeholder={settings.aiApiKey ? "••••••••••••••••" : "Paste your API Key here..."}
-                  onChange={(e) => updateSetting((prev) => ({ ...prev, aiApiKey: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
-                  style={inputStyle}
-                />
-                <p className="text-[10px] mt-1.5" style={{ color: "hsl(var(--color-text-tertiary))" }}>
-                  Your API key is securely encrypted at rest. If left blank, the system will fall back to environment variables (`GEMINI_API_KEY` or `OPENAI_API_KEY`).
-                </p>
-              </div>
+              <hr style={{ borderColor: "hsl(var(--color-border))" }} />
 
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>
-                  AI Model Name
-                </label>
-                <input
-                  type="text"
-                  value={settings.aiModel || ""}
-                  placeholder={settings.aiProvider === "OPENAI" ? "gpt-4o-mini" : "gemini-1.5-flash-latest"}
-                  onChange={(e) => updateSetting((prev) => ({ ...prev, aiModel: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                  style={inputStyle}
-                />
-                <p className="text-[10px] mt-1.5" style={{ color: "hsl(var(--color-text-tertiary))" }}>
-                  Defaults: `gemini-1.5-flash-latest` for Gemini, or `gpt-4o-mini` for OpenAI.
-                </p>
-              </div>
+              {/* Gemini Section */}
+              {(settings.aiProvider === "AUTO" || settings.aiProvider === "GEMINI") && (
+                <div className="space-y-4 p-4 rounded-xl border border-dashed" style={{ borderColor: "hsl(var(--color-border))" }}>
+                  <h3 className="text-xs font-bold text-sky-400">Google Gemini API</h3>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Gemini API Key</label>
+                    <input
+                      type="password"
+                      value={settings.aiGeminiKey || ""}
+                      placeholder={settings.aiGeminiKey ? "••••••••••••••••" : "Paste your Gemini API Key..."}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiGeminiKey: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Gemini Model</label>
+                    <input
+                      type="text"
+                      value={settings.aiGeminiModel || ""}
+                      placeholder="gemini-1.5-flash-latest"
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiGeminiModel: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Groq Section */}
+              {(settings.aiProvider === "AUTO" || settings.aiProvider === "GROQ") && (
+                <div className="space-y-4 p-4 rounded-xl border border-dashed" style={{ borderColor: "hsl(var(--color-border))" }}>
+                  <h3 className="text-xs font-bold text-amber-400">Groq API</h3>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Groq API Key</label>
+                    <input
+                      type="password"
+                      value={settings.aiGroqKey || ""}
+                      placeholder={settings.aiGroqKey ? "••••••••••••••••" : "Paste your Groq API Key (gsk_...)"}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiGroqKey: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>Groq Model</label>
+                    <input
+                      type="text"
+                      value={settings.aiGroqModel || ""}
+                      placeholder="llama-3.3-70b-versatile"
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiGroqModel: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* OpenAI Section */}
+              {(settings.aiProvider === "AUTO" || settings.aiProvider === "OPENAI") && (
+                <div className="space-y-4 p-4 rounded-xl border border-dashed" style={{ borderColor: "hsl(var(--color-border))" }}>
+                  <h3 className="text-xs font-bold text-emerald-400">OpenAI API</h3>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>OpenAI API Key</label>
+                    <input
+                      type="password"
+                      value={settings.aiOpenAiKey || ""}
+                      placeholder={settings.aiOpenAiKey ? "••••••••••••••••" : "Paste your OpenAI API Key (sk-...)"}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiOpenAiKey: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>OpenAI Model</label>
+                    <input
+                      type="text"
+                      value={settings.aiOpenAiModel || ""}
+                      placeholder="gpt-4o-mini"
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiOpenAiModel: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* OpenRouter Section */}
+              {(settings.aiProvider === "AUTO" || settings.aiProvider === "OPENROUTER") && (
+                <div className="space-y-4 p-4 rounded-xl border border-dashed" style={{ borderColor: "hsl(var(--color-border))" }}>
+                  <h3 className="text-xs font-bold text-purple-400">OpenRouter API</h3>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>OpenRouter API Key</label>
+                    <input
+                      type="password"
+                      value={settings.aiOpenRouterKey || ""}
+                      placeholder={settings.aiOpenRouterKey ? "••••••••••••••••" : "Paste your OpenRouter API Key (sk-or-...)"}
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiOpenRouterKey: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono text-xs"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "hsl(var(--color-text-secondary))" }}>OpenRouter Model</label>
+                    <input
+                      type="text"
+                      value={settings.aiOpenRouterModel || ""}
+                      placeholder="openrouter/free"
+                      onChange={(e) => updateSetting((prev) => ({ ...prev, aiOpenRouterModel: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

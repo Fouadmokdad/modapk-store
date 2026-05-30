@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit, callOpenAI, cachedAICall, cleanAIOutput } from "@/lib/ai-utils";
-import { createApiError, logError } from "@/lib/error-utils";
+import { createApiError, logError, logWarn } from "@/lib/error-utils";
 import { getSiteSettings } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
@@ -49,31 +49,33 @@ export async function POST(request: NextRequest) {
     const currentFullAr = fullDescription?.ar || "";
 
     const settings = await getSiteSettings();
-    let apiKey = "";
-    const provider = settings.aiProvider || "GEMINI";
-    const model = settings.aiModel || "gemini-1.5-flash-latest";
+    const provider = settings.aiProvider || "AUTO";
 
-    if (settings.aiApiKey) {
-      const { decrypt } = await import("@/lib/encryption");
+    // Decrypt keys helper
+    const { decrypt } = await import("@/lib/encryption");
+    const decryptKey = (key: string | null | undefined, envVar: string) => {
+      if (!key) return process.env[envVar] || "";
       try {
-        apiKey = decrypt(settings.aiApiKey);
+        return decrypt(key);
       } catch (e) {
-        apiKey = settings.aiApiKey;
+        return key;
       }
-    }
+    };
 
-    // Fallback to process.env if no key configured in database settings
-    if (!apiKey) {
-      if (provider === "GEMINI") {
-        apiKey = process.env.GEMINI_API_KEY || "";
-      } else {
-        apiKey = process.env.OPENAI_API_KEY || "";
-      }
-    }
+    // Get keys and fallback to environment variables
+    const geminiKey = decryptKey(settings.aiGeminiKey || settings.aiApiKey, "GEMINI_API_KEY");
+    const openaiKey = decryptKey(settings.aiOpenAiKey || (settings.aiProvider === "OPENAI" ? settings.aiApiKey : ""), "OPENAI_API_KEY");
+    const groqKey = decryptKey(settings.aiGroqKey, "GROQ_API_KEY");
+    const openrouterKey = decryptKey(settings.aiOpenRouterKey, "OPENROUTER_API_KEY");
 
-    if (apiKey) {
-      // --- AI API INTEGRATION (Gemini or OpenAI) ---
-      const prompt = `
+    // Models
+    const geminiModel = settings.aiGeminiModel || settings.aiModel || "gemini-1.5-flash-latest";
+    const openaiModel = settings.aiOpenAiModel || settings.aiModel || "gpt-4o-mini";
+    const groqModel = settings.aiGroqModel || "llama-3.3-70b-versatile";
+    const openrouterModel = settings.aiOpenRouterModel || "openrouter/free";
+
+    // Build prompt for AI content optimizer
+    const prompt = `
 You are a professional mobile app review editor and SEO copywriter for a premium Android store like APKPure, LiteAPKs, or APKMODY.
 Your goal is to write long-form, editorial-grade, human-written content for the app/game described below.
 
@@ -151,46 +153,117 @@ AI WRITING & QUALITY RULES:
    }
 `;
 
-      try {
-        // Use cached AI call with retry + backoff
-        const cacheKey = { appTitleEn, action, relType, catName, provider, model };
-        const result = await cachedAICall(
-          cacheKey,
-          async () => {
-            if (provider === "GEMINI") {
-              const { callGemini } = await import("@/lib/ai-engine");
-              return await callGemini(prompt, apiKey);
-            } else {
-              const contentStr = await callOpenAI({
-                apiKey,
-                model: model || "gpt-4o-mini",
-                systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
-                userPrompt: prompt,
-                responseFormat: { type: "json_object" },
-              });
-              return JSON.parse(contentStr);
-            }
-          },
-          null // null fallback = will use local engine below
-        );
+    // Define provider execution wrappers
+    const runGemini = async () => {
+      if (!geminiKey) throw new Error("Gemini API Key is not configured.");
+      const { callGemini } = await import("@/lib/ai-engine");
+      return await callGemini(prompt, geminiKey);
+    };
 
-        if (result) {
-          return NextResponse.json({
-            success: true,
-            shortDescription: {
-              en: cleanAIOutput(result?.shortDescription?.en || currentShortEn),
-              ar: cleanAIOutput(result?.shortDescription?.ar || currentShortAr),
-            },
-            fullDescription: {
-              en: cleanAIOutput(result?.fullDescription?.en || currentFullEn),
-              ar: cleanAIOutput(result?.fullDescription?.ar || currentFullAr),
-            },
-          });
-        }
-      } catch (err: unknown) {
-        logError("AI-Rewrite", err, { action, appTitleEn, provider });
-        // Fall through to local engine
+    const runGroq = async () => {
+      if (!groqKey) throw new Error("Groq API Key is not configured.");
+      const contentStr = await callOpenAI({
+        apiKey: groqKey,
+        baseUrl: "https://api.groq.com/openai/v1/chat/completions",
+        model: groqModel,
+        systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
+        userPrompt: prompt,
+        responseFormat: { type: "json_object" },
+      });
+      return JSON.parse(contentStr);
+    };
+
+    const runOpenAI = async () => {
+      if (!openaiKey) throw new Error("OpenAI API Key is not configured.");
+      const contentStr = await callOpenAI({
+        apiKey: openaiKey,
+        model: openaiModel,
+        systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
+        userPrompt: prompt,
+        responseFormat: { type: "json_object" },
+      });
+      return JSON.parse(contentStr);
+    };
+
+    const runOpenRouter = async () => {
+      if (!openrouterKey) throw new Error("OpenRouter API Key is not configured.");
+      const contentStr = await callOpenAI({
+        apiKey: openrouterKey,
+        baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+        model: openrouterModel,
+        extraHeaders: {
+          "HTTP-Referer": settings.siteUrl || "http://localhost:3000",
+          "X-Title": settings.siteTitle?.en || "ModAPK Store",
+        },
+        systemPrompt: "You are a JSON-only generating assistant that returns app descriptions in bilingual formats.",
+        userPrompt: prompt,
+        responseFormat: { type: "json_object" },
+      });
+      return JSON.parse(contentStr);
+    };
+
+    let aiResult: any = null;
+    let errors: string[] = [];
+
+    const executeProvider = async (p: string) => {
+      if (p === "GEMINI") return await runGemini();
+      if (p === "GROQ") return await runGroq();
+      if (p === "OPENAI") return await runOpenAI();
+      if (p === "OPENROUTER") return await runOpenRouter();
+      throw new Error(`Unsupported provider: ${p}`);
+    };
+
+    try {
+      // Use cached AI call with retry + backoff
+      const cacheKey = { appTitleEn, action, relType, catName, provider, geminiModel, openaiModel, groqModel, openrouterModel };
+      aiResult = await cachedAICall(
+        cacheKey,
+        async () => {
+          if (provider === "AUTO") {
+            const sequence = ["GEMINI", "GROQ", "OPENAI", "OPENROUTER"];
+            for (const currentProvider of sequence) {
+              try {
+                // Check if key is available before trying
+                const hasKey =
+                  (currentProvider === "GEMINI" && geminiKey) ||
+                  (currentProvider === "GROQ" && groqKey) ||
+                  (currentProvider === "OPENAI" && openaiKey) ||
+                  (currentProvider === "OPENROUTER" && openrouterKey);
+
+                if (!hasKey) continue;
+
+                const res = await executeProvider(currentProvider);
+                if (res) return res;
+              } catch (err: any) {
+                const msg = err instanceof Error ? err.message : String(err);
+                errors.push(`${currentProvider}: ${msg}`);
+                logWarn("AUTO-AI", `${currentProvider} attempt failed: ${msg}`);
+              }
+            }
+            throw new Error(`All providers failed. Errors: ${errors.join("; ")}`);
+          } else {
+            return await executeProvider(provider);
+          }
+        },
+        null // null fallback = will use local engine below
+      );
+
+      if (aiResult) {
+        return NextResponse.json({
+          success: true,
+          shortDescription: {
+            en: cleanAIOutput(aiResult?.shortDescription?.en || currentShortEn),
+            ar: cleanAIOutput(aiResult?.shortDescription?.ar || currentShortAr),
+          },
+          fullDescription: {
+            en: cleanAIOutput(aiResult?.fullDescription?.en || currentFullEn),
+            ar: cleanAIOutput(aiResult?.fullDescription?.ar || currentFullAr),
+          },
+        });
       }
+    } catch (err: unknown) {
+      logError("AI-Rewrite", err, { action, appTitleEn, provider });
+      // Fall through to local engine
     }
 
     // --- HIGH-QUALITY EDITORIAL LOCAL BACKUP REWRITE ENGINE ---

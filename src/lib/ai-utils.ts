@@ -82,6 +82,8 @@ export async function retryWithBackoff<T>(
 // ---------------------------------------------------------------------------
 interface OpenAICallOptions {
   apiKey: string;
+  baseUrl?: string;
+  extraHeaders?: Record<string, string>;
   model?: string;
   systemPrompt: string;
   userPrompt: string;
@@ -93,6 +95,8 @@ interface OpenAICallOptions {
 export async function callOpenAI(options: OpenAICallOptions): Promise<string> {
   const {
     apiKey,
+    baseUrl = "https://api.openai.com/v1/chat/completions",
+    extraHeaders = {},
     model = "gpt-4o-mini",
     systemPrompt,
     userPrompt,
@@ -103,11 +107,12 @@ export async function callOpenAI(options: OpenAICallOptions): Promise<string> {
 
   return retryWithBackoff(
     async () => {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      const response = await fetch(baseUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
+          ...extraHeaders,
         },
         body: JSON.stringify({
           model,
