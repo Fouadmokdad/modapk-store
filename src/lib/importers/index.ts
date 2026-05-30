@@ -290,7 +290,7 @@ export async function importAppMetadataFromUrl(urlStr: string, forceGeneric = fa
       ar: cleanDescriptionAr,
     },
     iconUrl: parsed.iconUrl || null,
-    screenshots: parsed.screenshots || [],
+    screenshots: Array.from(new Set(parsed.screenshots || [])).filter(Boolean).slice(0, 8),
 
     versionName: parsed.versionName || null,
     versionCode: parsed.versionCode || null,

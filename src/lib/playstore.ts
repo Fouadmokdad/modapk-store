@@ -242,7 +242,7 @@ export async function fetchAppFromPlayStore(
       descriptionHTML: result.descriptionHTML || "",
       icon: result.icon || "",
       headerImage: result.headerImage || null,
-      screenshots: result.screenshots || [],
+      screenshots: Array.from(new Set(result.screenshots || [])).filter(Boolean).slice(0, 8),
       developer: result.developer || "",
       developerUrl: result.developerWebsite || null,
       playStoreUrl: result.url || `https://play.google.com/store/apps/details?id=${packageName}`,

@@ -185,7 +185,8 @@ export async function POST(request: NextRequest) {
 
     // 2. Add Screenshots
     if (Array.isArray(screenshots) && screenshots.length > 0) {
-      const screenshotData = screenshots.map((url, i) => ({
+      const uniqueScreenshots = Array.from(new Set(screenshots.filter(Boolean))).slice(0, 8);
+      const screenshotData = uniqueScreenshots.map((url, i) => ({
         appId,
         url,
         altText: `${title.en} screenshot ${i + 1}`,
