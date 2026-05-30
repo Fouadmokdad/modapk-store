@@ -34,7 +34,9 @@ export interface ImportedAppData {
   category: string | null; // e.g. "Tools", "Action"
   type: "APP" | "GAME";
   developer: string | null;
+  developerUrl: string | null;
   rating: number | null;
+  contentRating: string | null;
   installs: string | null;
   releasedAt: string | null; // ISO Date string or null
   

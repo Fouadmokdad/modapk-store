@@ -107,8 +107,29 @@ export const GenericParser: ImporterParser = {
       jsonLdApp.publisher?.name || 
       null;
 
+    const developerUrl = 
+      jsonLdApp.author?.url || 
+      jsonLdApp.publisher?.url || 
+      jsonLdApp.developer?.url || 
+      null;
+
     const ratingVal = jsonLdApp.aggregateRating?.ratingValue;
     const rating = ratingVal ? Number(ratingVal) : null;
+
+    const contentRating = jsonLdApp.contentRating || null;
+
+    let installs = null;
+    if (jsonLdApp.interactionStatistic) {
+      const stats = Array.isArray(jsonLdApp.interactionStatistic)
+        ? jsonLdApp.interactionStatistic
+        : [jsonLdApp.interactionStatistic];
+      for (const stat of stats) {
+        if (stat.userInteractionCount) {
+          installs = stat.userInteractionCount.toString();
+          break;
+        }
+      }
+    }
 
     // 7. Find original Google Play store URL references
     let originalPlayStoreUrl: string | null = null;
@@ -118,6 +139,19 @@ export const GenericParser: ImporterParser = {
         originalPlayStoreUrl = href;
       }
     });
+
+    let packageName = jsonLdApp.packageName || null;
+    if (!packageName && originalPlayStoreUrl) {
+      try {
+        const u = new URL(originalPlayStoreUrl);
+        const id = u.searchParams.get("id");
+        if (id) {
+          packageName = id;
+        }
+      } catch {
+        // safe skip
+      }
+    }
 
     // 8. Safely inspect for visible public download links
     const externalDownloadLinks: { label: string; url: string }[] = [];
@@ -141,7 +175,7 @@ export const GenericParser: ImporterParser = {
       sourceName: "Generic fallback parser",
       sourceUrl: url,
       title,
-      packageName: jsonLdApp.packageName || null,
+      packageName,
       shortDescription: { en: "", ar: "" },
       description,
       iconUrl,
@@ -152,7 +186,10 @@ export const GenericParser: ImporterParser = {
       category: jsonLdApp.applicationCategory || null,
       type: jsonLdApp.applicationCategory?.toLowerCase().includes("game") ? "GAME" : "APP",
       developer,
+      developerUrl,
       rating,
+      contentRating,
+      installs,
       originalPlayStoreUrl,
       externalDownloadLinks: externalDownloadLinks.slice(0, 2),
       warnings,

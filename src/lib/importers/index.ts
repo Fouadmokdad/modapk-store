@@ -8,6 +8,7 @@ import { getParserForDomain } from "./registry";
 import { ImportedAppData, ExternalDownloadLink, LinkClassification } from "./types";
 import { slugify } from "../utils";
 import { GenericParser } from "./sources/generic";
+import { fetchAppFromPlayStore } from "../playstore";
 
 const IMPORTER_VERSION = "1.1.0";
 
@@ -169,6 +170,60 @@ export async function importAppMetadataFromUrl(urlStr: string, forceGeneric = fa
     }
   }
 
+  // Auto-extract packageName from originalPlayStoreUrl if packageName itself is missing
+  if (!parsed.packageName && parsed.originalPlayStoreUrl) {
+    try {
+      const parsedUrl = new URL(parsed.originalPlayStoreUrl);
+      const pkg = parsedUrl.searchParams.get("id");
+      if (pkg) {
+        parsed.packageName = pkg;
+      }
+    } catch {
+      // safe skip
+    }
+  }
+
+  // If the parsed domain itself is google play store (e.g. play.google.com link)
+  if (!parsed.packageName && domain.includes("play.google.com")) {
+    try {
+      const parsedUrl = new URL(urlStr);
+      const pkg = parsedUrl.searchParams.get("id");
+      if (pkg) {
+        parsed.packageName = pkg;
+      }
+    } catch {
+      // safe skip
+    }
+  }
+
+  // Play Store metadata enrichment fallback
+  if (parsed.packageName) {
+    try {
+      const playStoreData = await fetchAppFromPlayStore(parsed.packageName);
+      if (playStoreData) {
+        parsed.developer = parsed.developer || playStoreData.developer;
+        parsed.developerUrl = parsed.developerUrl || playStoreData.developerUrl;
+        parsed.rating = parsed.rating || playStoreData.rating;
+        parsed.installs = parsed.installs || playStoreData.installs;
+        parsed.contentRating = parsed.contentRating || playStoreData.contentRating;
+        parsed.originalPlayStoreUrl = parsed.originalPlayStoreUrl || playStoreData.playStoreUrl;
+
+        // Populate version name if missing or placeholder
+        if (!parsed.versionName || parsed.versionName.toLowerCase() === "varies" || parsed.versionName === "1.0.0") {
+          parsed.versionName = playStoreData.version;
+        }
+
+        // Also minAndroid if missing
+        if (!parsed.minAndroid) {
+          parsed.minAndroid = playStoreData.androidVersion;
+        }
+      }
+    } catch (e) {
+      console.warn(`Play Store enrichment failed for package ${parsed.packageName}:`, e);
+      warnings.push(`Play Store metadata enrichment failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   // Combine warnings and clean descriptions
   const combinedWarnings = [...warnings, ...(parsed.warnings || [])];
 
@@ -244,7 +299,9 @@ export async function importAppMetadataFromUrl(urlStr: string, forceGeneric = fa
     category: parsed.category || null,
     type: parsed.type || "APP",
     developer: parsed.developer || null,
+    developerUrl: parsed.developerUrl || null,
     rating: parsed.rating || null,
+    contentRating: parsed.contentRating || null,
     installs: parsed.installs || null,
     releasedAt: parsed.releasedAt || null,
 

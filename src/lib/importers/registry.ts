@@ -10,6 +10,7 @@ import { HappyModParser } from "./sources/happymod";
 import { UptodownParser } from "./sources/uptodown";
 import { ApkPureParser } from "./sources/apkpure";
 import { ApkComboParser } from "./sources/apkcombo";
+import { DlandroidParser } from "./sources/dlandroid";
 import { GenericParser } from "./sources/generic";
 
 /**
@@ -24,6 +25,7 @@ export const ImporterRegistry: Record<string, ImporterParser> = {
   "uptodown.com": UptodownParser,
   "apkpure.com": ApkPureParser,
   "apkcombo.com": ApkComboParser,
+  "dlandroid.com": DlandroidParser,
 };
 
 /**
