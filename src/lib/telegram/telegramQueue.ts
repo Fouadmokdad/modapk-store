@@ -243,6 +243,9 @@ export async function queueTelegramPost(appId: string, versionId?: string) {
 export async function processTelegramPost(logId: string) {
   console.log(`[TelegramQueue] Worker received task for Log ID: ${logId}`);
   
+  // 1. Wait for 5 seconds to let the mobile app complete subsequent version/links POST requests.
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
   const log = await db.telegramLog.findUnique({
     where: { id: logId },
   });
@@ -257,8 +260,87 @@ export async function processTelegramPost(logId: string) {
     return;
   }
 
-  const payload = log.payload as any;
-  if (!payload || !payload.text) {
+  // 2. Re-fetch app and latest version to get the newest info (size, version, requirement)
+  const appId = log.appId;
+  let text = "";
+  let photoUrl: string | null = null;
+  let reply_markup: any = null;
+
+  if (appId) {
+    try {
+      const app = await db.app.findUnique({
+        where: { id: appId },
+        include: {
+          category: true,
+          tags: { include: { tag: true } },
+        },
+      });
+
+      if (app) {
+        const settings = await getSiteSettings();
+        const version = await db.appVersion.findFirst({
+          where: { appId },
+          orderBy: { createdAt: "desc" },
+        });
+
+        let templateSettings = await db.telegramSettings.findUnique({
+          where: { id: "global" },
+        });
+
+        if (!templateSettings) {
+          templateSettings = DEFAULT_TEMPLATE_SETTINGS as any;
+        }
+
+        const modFeaturesArray = app.modFeatures && Array.isArray(app.modFeatures)
+          ? app.modFeatures.map((f: any) => f.en || f.ar || "")
+          : [];
+
+        const postData = {
+          appName: app.slug,
+          appTitleEn: (app.title as any).en || "",
+          appTitleAr: (app.title as any).ar || "",
+          slug: app.slug,
+          categoryNameEn: (app.category?.name as any)?.en || "",
+          tags: app.tags.map((t) => (t.tag.name as any)?.en || ""),
+          releaseType: app.releaseType,
+          modFeatures: modFeaturesArray,
+          versionName: version?.versionName || undefined,
+          apkSize: version?.apkSize || version?.size || undefined,
+          androidRequirement: version?.androidRequirement || version?.minAndroid || undefined,
+          changelogEn: (version?.changelog as any)?.en || undefined,
+          changelogAr: (version?.changelog as any)?.ar || undefined,
+          developer: app.developer || undefined,
+          downloadCount: app.downloadCount ?? 0,
+          publishedAt: app.publishedAt || undefined,
+        };
+
+        text = renderTelegramTemplate(postData, templateSettings as any);
+        reply_markup = generateTelegramButtons(app.slug, {
+          ...templateSettings,
+          siteUrl: settings.siteUrl,
+        } as any);
+
+        photoUrl = settings.telegramIncludeImage
+          ? (app.iconUrl || app.headerImageUrl || null)
+          : null;
+
+        // Resolve relative URLs
+        if (photoUrl && photoUrl.startsWith("/")) {
+          const siteUrl = settings.siteUrl || "http://localhost:3000";
+          photoUrl = `${String(siteUrl).replace(/\/+$/, "")}${photoUrl}`;
+        }
+      }
+    } catch (err) {
+      console.error(`[TelegramQueue] Error re-rendering template in worker:`, err);
+    }
+  }
+
+  // Fallback to original payload if re-rendering failed or wasn't possible
+  const finalPayloadText = text || (log.payload as any)?.text;
+  const finalPayloadPhoto = photoUrl || (log.payload as any)?.photoUrl;
+  const finalPayloadMarkup = reply_markup || (log.payload as any)?.reply_markup;
+
+  if (!finalPayloadText) {
     console.error(`[TelegramQueue] Empty payload text in Log ID: ${logId}`);
     await db.telegramLog.update({
       where: { id: logId },
@@ -289,9 +371,9 @@ export async function processTelegramPost(logId: string) {
       console.log(`[TelegramQueue] Post attempt ${attempt + 1}/${maxRetries} for Log ID: ${logId}...`);
       
       const res = await sendTelegramMessage({
-        text: payload.text,
-        photoUrl: payload.photoUrl,
-        reply_markup: payload.reply_markup,
+        text: finalPayloadText,
+        photoUrl: finalPayloadPhoto,
+        reply_markup: finalPayloadMarkup,
       });
 
       success = true;
