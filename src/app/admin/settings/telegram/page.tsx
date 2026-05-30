@@ -113,6 +113,8 @@ const LAYOUT_TOGGLES = [
   { key: "showChangelog", label: "Changelog", icon: "📋" },
   { key: "showHashtags", label: "Hashtags", icon: "#️⃣" },
   { key: "showFooter", label: "Footer", icon: "📌" },
+  { key: "showDownloadButton", label: "Download Button", icon: "⬇️" },
+  { key: "showWebsiteButton", label: "Website Button", icon: "🌐" },
 ];
 
 // ─── Main Page Component ───────────────────────────────────────────────────────
@@ -766,6 +768,8 @@ export default function TelegramEnterprisePage() {
             appImageUrl={previewData.iconUrl || previewData.headerImageUrl}
             reactionsEnabled={settings.reactionsEnabled}
             reactionsList={settings.reactionsList}
+            showDownloadButton={settings.showDownloadButton}
+            showWebsiteButton={settings.showWebsiteButton}
           />
 
           {/* Test Post Button */}

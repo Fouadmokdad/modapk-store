@@ -45,6 +45,8 @@ export interface TelegramTemplateSettings {
   parseMode: string;
   reactionsEnabled?: boolean;
   reactionsList?: string;
+  showDownloadButton: boolean;
+  showWebsiteButton: boolean;
 }
 
 export const DEFAULT_TEMPLATE = `<b>🔥 {title}</b>
@@ -94,7 +96,9 @@ export const DEFAULT_TEMPLATE_SETTINGS: TelegramTemplateSettings = {
   },
   parseMode: "HTML",
   reactionsEnabled: true,
-  reactionsList: "👍,👎,🤔,❤️"
+  reactionsList: "👍,👎,🤔,❤️",
+  showDownloadButton: true,
+  showWebsiteButton: true
 };
 
 /**
@@ -362,6 +366,8 @@ export function generateTelegramButtons(
     websiteButtonText?: string;
     reactionsEnabled?: boolean;
     reactionsList?: string;
+    showDownloadButton?: boolean;
+    showWebsiteButton?: boolean;
   } | null | undefined
 ) {
   const sUrl = settings?.siteUrl || "http://localhost:3000";
@@ -385,10 +391,28 @@ export function generateTelegramButtons(
     }
   }
 
-  // Add single download button row pointing to app details page
-  keyboard.push([
-    { text: settings?.downloadButtonText || "⬇️ DOWNLOAD NOW", url: appDetailsUrl }
-  ]);
+  // Add links buttons
+  const buttonRow: any[] = [];
+  const showDownload = settings?.showDownloadButton ?? true;
+  const showWebsite = settings?.showWebsiteButton ?? true;
+
+  if (showDownload) {
+    buttonRow.push({
+      text: settings?.downloadButtonText || "⬇️ DOWNLOAD NOW",
+      url: appDetailsUrl
+    });
+  }
+
+  if (showWebsite) {
+    buttonRow.push({
+      text: settings?.websiteButtonText || "🌐 VISIT WEBSITE",
+      url: safeSiteUrl
+    });
+  }
+
+  if (buttonRow.length > 0) {
+    keyboard.push(buttonRow);
+  }
 
   return {
     inline_keyboard: keyboard

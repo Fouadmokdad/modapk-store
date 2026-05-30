@@ -475,6 +475,8 @@ model TelegramSettings {
   showChangelog      Boolean  @default(false)
   showHashtags       Boolean  @default(true)
   showFooter         Boolean  @default(true)
+  showDownloadButton Boolean  @default(true)
+  showWebsiteButton  Boolean  @default(true)
 
   titleStyle         String   @default("premium")
   dateFormat         String   @default("long")

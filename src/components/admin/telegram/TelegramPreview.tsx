@@ -14,6 +14,8 @@ interface Props {
   appImageUrl?: string;
   reactionsEnabled?: boolean;
   reactionsList?: string;
+  showDownloadButton?: boolean;
+  showWebsiteButton?: boolean;
 }
 
 type DeviceMode = "android" | "iphone" | "desktop" | "tablet";
@@ -52,6 +54,8 @@ export function TelegramPreview({
   appImageUrl,
   reactionsEnabled = true,
   reactionsList = "👍,👎,🤔,❤️",
+  showDownloadButton = true,
+  showWebsiteButton = true,
 }: Props) {
   const [device, setDevice] = useState<DeviceMode>("android");
   const [theme, setTheme] = useState<ThemeMode>("dark");
@@ -277,6 +281,8 @@ export function TelegramPreview({
                     showReactions={showReactions}
                     reactionsEnabled={reactionsEnabled}
                     reactionsList={reactionsList}
+                    showDownloadButton={showDownloadButton}
+                    showWebsiteButton={showWebsiteButton}
                     desktop
                   />
                 </div>
@@ -372,6 +378,8 @@ export function TelegramPreview({
                   showReactions={showReactions}
                   reactionsEnabled={reactionsEnabled}
                   reactionsList={reactionsList}
+                  showDownloadButton={showDownloadButton}
+                  showWebsiteButton={showWebsiteButton}
                 />
               </div>
 
@@ -401,11 +409,14 @@ function ChatBubble({
   text, downloadBtn, websiteBtn, image, isDark,
   bubbleBg, textColor, subColor, showForwarded, showReactions, desktop = false,
   reactionsEnabled = true, reactionsList = "👍,👎,🤔,❤️",
+  showDownloadButton = true, showWebsiteButton = true,
 }: {
   text: string; downloadBtn: string; websiteBtn: string;
   image?: string; isDark: boolean; bubbleBg: string; textColor: string;
   subColor: string; showForwarded: boolean; showReactions: boolean; desktop?: boolean;
   reactionsEnabled?: boolean; reactionsList?: string;
+  showDownloadButton?: boolean;
+  showWebsiteButton?: boolean;
 }) {
   const [pickedReaction, setPickedReaction] = useState<string | null>(null);
   const fontSize = desktop ? 12 : 11;
@@ -470,9 +481,20 @@ function ChatBubble({
             ))}
           </div>
         )}
-        <div style={{ padding: desktop ? "8px 10px" : "6px 8px", background: isDark ? "rgba(34,158,217,0.12)" : "rgba(34,158,217,0.08)", border: "1px solid rgba(34,158,217,0.25)", borderRadius: 10, color: "#4fc3f7", fontSize: desktop ? 11 : 9, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>
-          {downloadBtn || "⬇️ DOWNLOAD NOW"}
-        </div>
+        {(showDownloadButton || showWebsiteButton) && (
+          <div style={{ display: "flex", gap: 6 }}>
+            {showDownloadButton && (
+              <div style={{ flex: 1, padding: desktop ? "8px 10px" : "6px 8px", background: isDark ? "rgba(34,158,217,0.12)" : "rgba(34,158,217,0.08)", border: "1px solid rgba(34,158,217,0.25)", borderRadius: 10, color: "#4fc3f7", fontSize: desktop ? 11 : 9, fontWeight: 700, textAlign: "center", cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {downloadBtn || "⬇️ DOWNLOAD NOW"}
+              </div>
+            )}
+            {showWebsiteButton && (
+              <div style={{ flex: 1, padding: desktop ? "8px 10px" : "6px 8px", background: isDark ? "rgba(34,158,217,0.12)" : "rgba(34,158,217,0.08)", border: "1px solid rgba(34,158,217,0.25)", borderRadius: 10, color: "#4fc3f7", fontSize: desktop ? 11 : 9, fontWeight: 700, textAlign: "center", cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {websiteBtn || "🌐 VISIT WEBSITE"}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Reactions */}

@@ -33,6 +33,8 @@ const telegramSettingsSchema = z.object({
   parseMode: z.string().default("HTML"),
   reactionsEnabled: z.boolean().default(true),
   reactionsList: z.string().default("👍,👎,🤔,❤️"),
+  showDownloadButton: z.boolean().default(true),
+  showWebsiteButton: z.boolean().default(true),
 });
 
 /**
