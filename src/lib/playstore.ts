@@ -7,6 +7,7 @@
 import gplay from "google-play-scraper";
 import * as cheerio from "cheerio";
 import { fetchSafeHtml } from "./importers/security";
+import { hybridFetchHtml } from "./importers/hybridExtractor";
 
 function cleanTitleForSearch(title: string): string {
   let clean = title.split(/[-:|]/)[0].trim();
@@ -43,6 +44,76 @@ function formatSize(sizeStr: string): string {
 }
 
 async function fallbackSizeFromThirdParty(packageName: string, appTitle?: string): Promise<string | null> {
+  // 1. Try APKPure details page (original size)
+  try {
+    const url = `https://apkpure.com/store/apps/details?id=${packageName}`;
+    console.log(`[SizeFallback] Fetching APKPure direct page: ${url}`);
+    const { html } = await hybridFetchHtml(url);
+    const $ = cheerio.load(html);
+    let size: string | null = null;
+
+    $("a strong, .text.one-line, .ny-down .size, .fast-download-box .size").each((_, elem) => {
+      const text = $(elem).text().trim();
+      if (text.includes("Download APK") || text.includes("Download XAPK")) {
+        const match = text.match(/([0-9\.]+\s*(mb|gb|kb))/i);
+        if (match) {
+          size = formatSize(match[1]);
+          return false; // break each
+        }
+      }
+    });
+
+    if (!size) {
+      $(".technical-info tr, tr, li, div").each((_, elem) => {
+        const text = $(elem).text().trim().toLowerCase();
+        if (text.includes("size") || text.includes("file size")) {
+          const innerText = $(elem).text().trim();
+          const match = innerText.match(/([0-9\.]+\s*(mb|gb|kb))/i);
+          if (match) {
+            size = formatSize(match[1]);
+            return false; // break each
+          }
+        }
+      });
+    }
+
+    if (size) {
+      console.log(`[SizeFallback] Successfully parsed size from APKPure: ${size}`);
+      return size;
+    }
+  } catch (e: any) {
+    console.warn("[SizeFallback] APKPure fallback failed:", e.message || e);
+  }
+
+  // 2. Try APKCombo details page (original size)
+  try {
+    const url = `https://apkcombo.com/store/apps/details?id=${packageName}`;
+    console.log(`[SizeFallback] Fetching APKCombo direct page: ${url}`);
+    const { html } = await hybridFetchHtml(url);
+    const $ = cheerio.load(html);
+    let size: string | null = null;
+
+    $(".technical-info tr, tr, li, td").each((_, elem) => {
+      const text = $(elem).text().toLowerCase();
+      if (text.includes("size") || text.includes("file size")) {
+        const innerText = $(elem).text().trim();
+        const match = innerText.match(/([0-9\.]+\s*(mb|gb|kb))/i);
+        if (match) {
+          size = formatSize(match[1]);
+          return false; // break each
+        }
+      }
+    });
+
+    if (size) {
+      console.log(`[SizeFallback] Successfully parsed size from APKCombo: ${size}`);
+      return size;
+    }
+  } catch (e: any) {
+    console.warn("[SizeFallback] APKCombo fallback failed:", e.message || e);
+  }
+
+  // 3. Fallback to LiteAPKs & GetModsAPK search queries (mods / secondary source)
   const searchQueries: string[] = [];
   if (appTitle) {
     searchQueries.push(cleanTitleForSearch(appTitle));
@@ -53,43 +124,45 @@ async function fallbackSizeFromThirdParty(packageName: string, appTitle?: string
     searchQueries.push(lastPart);
   }
 
-  // 1. Try LiteAPKs Search
+  console.log(`[SizeFallback] Falling back to search queries:`, searchQueries);
+
+  // LiteAPKs Search
   for (const query of searchQueries) {
     try {
       const url = `https://liteapks.com/?s=${encodeURIComponent(query)}`;
-      const html = await fetchSafeHtml(url);
+      const { html } = await hybridFetchHtml(url);
       const $ = cheerio.load(html);
       let sizeResult: string | null = null;
       
       $("article, a").each((_, elem) => {
         const cardTitle = $(elem).find("h2").text().trim();
         if (cardTitle && (!appTitle || isTitleMatch(cardTitle, appTitle))) {
-          // Find the size element inside the card
           $(elem).find("span").each((_, spanElem) => {
             const text = $(spanElem).text().trim();
             const match = text.match(/^([0-9\.]+\s*(m|mb|gb|kb|g|k))$/i);
             if (match) {
               sizeResult = formatSize(match[1]);
-              return false; // break inner each
+              return false; // break inner
             }
           });
-          if (sizeResult) return false; // break outer each
+          if (sizeResult) return false; // break outer
         }
       });
 
       if (sizeResult) {
+        console.log(`[SizeFallback] Successfully parsed size from LiteAPKs search: ${sizeResult}`);
         return sizeResult;
       }
-    } catch (e) {
-      console.warn(`LiteAPKs fallback failed for query "${query}":`, e);
+    } catch (e: any) {
+      console.warn(`[SizeFallback] LiteAPKs search fallback failed for query "${query}":`, e.message || e);
     }
   }
 
-  // 2. Try GetModsAPK Search
+  // GetModsAPK Search
   for (const query of searchQueries) {
     try {
       const url = `https://getmodsapk.com/?s=${encodeURIComponent(query)}`;
-      const html = await fetchSafeHtml(url);
+      const { html } = await hybridFetchHtml(url);
       const $ = cheerio.load(html);
       let sizeResult: string | null = null;
 
@@ -105,10 +178,11 @@ async function fallbackSizeFromThirdParty(packageName: string, appTitle?: string
       });
 
       if (sizeResult) {
+        console.log(`[SizeFallback] Successfully parsed size from GetModsAPK search: ${sizeResult}`);
         return sizeResult;
       }
-    } catch (e) {
-      console.warn(`GetModsAPK fallback failed for query "${query}":`, e);
+    } catch (e: any) {
+      console.warn(`[SizeFallback] GetModsAPK search fallback failed for query "${query}":`, e.message || e);
     }
   }
 
