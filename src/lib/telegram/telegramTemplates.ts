@@ -245,7 +245,7 @@ export function renderTelegramTemplate(
   let modVal = "";
   if ((s.showModFeatures ?? true) && d.modFeatures && d.modFeatures.length > 0) {
     const cleanFeatures = d.modFeatures.map(f => f ? String(f).trim() : "").filter(Boolean);
-    modVal = cleanFeatures.map(feat => `• ${escapeHTML(feat)}`).join("\n");
+    modVal = `<blockquote expandable>\n` + cleanFeatures.map(feat => `• ${escapeHTML(feat)}`).join("\n") + `\n</blockquote>`;
   }
   text = text.replace(/{modFeatures}/g, modVal);
 
@@ -324,7 +324,8 @@ export function renderTelegramTemplate(
         if (
           nextWithoutHtml.startsWith("•") ||
           nextWithoutHtml.startsWith("-") ||
-          nextWithoutHtml.startsWith("*")
+          nextWithoutHtml.startsWith("*") ||
+          nextLine.includes("<blockquote")
         ) {
           hasBulletContent = true;
         }

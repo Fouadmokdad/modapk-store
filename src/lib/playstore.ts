@@ -116,6 +116,7 @@ export function mapPlayStoreToAppDraft(data: PlayStoreAppData) {
     _screenshotUrls: data.screenshots,
 
     // Category matching hint
+    categoryName: data.genre,
     _genreHint: data.genre,
     _genreId: data.genreId,
   };
