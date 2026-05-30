@@ -303,21 +303,41 @@ export function renderTelegramTemplate(
   text = text.replace(/{hashtags}/g, hashtagsVal);
 
   // Clean empty lines and collapse redundant spaces
-  const cleanedText = text
-    .split("\n")
-    .filter((line) => {
-      const trimmed = line.trim();
-      if (trimmed === "" || trimmed === "\r") return true;
-      
-      // Strip HTML to see if there is actual content
-      const withoutHtml = trimmed.replace(/<\/?[^>]+(>|$)/g, "").trim();
-      
-      // If line ends with a colon (and has no content after it), it was a label for an empty variable. Filter it out.
-      if (withoutHtml.endsWith(":") || withoutHtml.endsWith("：")) {
-        return false;
+  const lines = text.split("\n");
+  const filteredLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed === "\r") {
+      filteredLines.push(line);
+      continue;
+    }
+
+    const withoutHtml = trimmed.replace(/<\/?[^>]+(>|$)/g, "").trim();
+    if (withoutHtml.endsWith(":") || withoutHtml.endsWith("：")) {
+      // It ends with a colon! Let's check if the next line starts with a list bullet (•, -, *)
+      let hasBulletContent = false;
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim();
+        const nextWithoutHtml = nextLine.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        if (
+          nextWithoutHtml.startsWith("•") ||
+          nextWithoutHtml.startsWith("-") ||
+          nextWithoutHtml.startsWith("*")
+        ) {
+          hasBulletContent = true;
+        }
       }
-      return true;
-    })
+      if (!hasBulletContent) {
+        continue; // Skip this label line because it has no list content following it
+      }
+    }
+
+    filteredLines.push(line);
+  }
+
+  const cleanedText = filteredLines
     .join("\n")
     // Collapse 3 or more consecutive newlines into 2
     .replace(/\n{3,}/g, "\n\n")
