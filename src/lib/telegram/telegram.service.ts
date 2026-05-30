@@ -62,6 +62,13 @@ export async function sendTelegramMessage(options: SendTelegramOptions) {
   const chatId = settings.telegramChatId;
   const silent = settings.telegramSilentPost ?? false;
 
+  // Asynchronously register the webhook to handle reaction callback queries
+  if (settings.siteUrl) {
+    registerTelegramWebhook(token, settings.siteUrl).catch((err) => {
+      console.error("[TelegramService] registerTelegramWebhook background error:", err);
+    });
+  }
+
   const includeImage = settings.telegramIncludeImage ?? true;
   let photoToSend = includeImage ? options.photoUrl : null;
 
@@ -159,5 +166,33 @@ export async function testTelegramConnection(token: string, chatId: string): Pro
     throw new Error(json.description || "Failed to connect to Telegram chat");
   }
 
+  // Asynchronously register the webhook
+  const settings = await getSiteSettings();
+  if (settings.siteUrl) {
+    registerTelegramWebhook(cleanToken, settings.siteUrl).catch((err) => {
+      console.error("[TelegramService] registerTelegramWebhook test background error:", err);
+    });
+  }
+
   return true;
+}
+
+/**
+ * Register the bot webhook with Telegram Bot API
+ */
+export async function registerTelegramWebhook(token: string, siteUrl: string) {
+  if (!token || !siteUrl) return;
+  const cleanUrl = String(siteUrl).replace(/\/+$/, "");
+  const webhookUrl = `${cleanUrl}/api/telegram/webhook`;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: webhookUrl })
+    });
+    const json = await res.json();
+    console.log(`[TelegramService] setWebhook registered at ${webhookUrl}:`, json);
+  } catch (err) {
+    console.error(`[TelegramService] Failed to set webhook:`, err);
+  }
 }

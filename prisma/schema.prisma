@@ -483,6 +483,9 @@ model TelegramSettings {
   categoryEmojis     Json?
   parseMode          String   @default("HTML")
 
+  reactionsEnabled   Boolean  @default(true)
+  reactionsList      String   @default("👍,👎,🤔,❤️")
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

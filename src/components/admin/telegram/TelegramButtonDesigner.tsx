@@ -11,6 +11,10 @@ interface Props {
   websiteButtonText: string;
   onDownloadChange: (val: string) => void;
   onWebsiteChange: (val: string) => void;
+  reactionsEnabled?: boolean;
+  reactionsList?: string;
+  onReactionsEnabledChange?: (val: boolean) => void;
+  onReactionsListChange?: (val: string) => void;
 }
 
 type ButtonStyle = "native" | "ghost" | "gradient" | "glow";
@@ -56,6 +60,10 @@ export function TelegramButtonDesigner({
   websiteButtonText,
   onDownloadChange,
   onWebsiteChange,
+  reactionsEnabled = true,
+  reactionsList = "👍,👎,🤔,❤️",
+  onReactionsEnabledChange,
+  onReactionsListChange,
 }: Props) {
   const [activeBtn, setActiveBtn] = useState<"download" | "website">("download");
   const [btnStyle, setBtnStyle] = useState<ButtonStyle>("native");
@@ -189,6 +197,47 @@ export function TelegramButtonDesigner({
         </div>
       </div>
 
+      {/* ── Reactions Configuration ───────────────────────────────────────────── */}
+      <div style={S.fullWidthRow}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>Enable Reactions Keyboard</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Display interactive reaction buttons on the first row</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onReactionsEnabledChange?.(!reactionsEnabled)}
+          style={{
+            width: 44,
+            height: 24,
+            borderRadius: 12,
+            border: "none",
+            cursor: "pointer",
+            background: reactionsEnabled ? "#229ed9" : "rgba(255,255,255,0.1)",
+            position: "relative",
+            transition: "background 0.2s ease",
+            boxShadow: reactionsEnabled ? "0 0 10px rgba(34,158,217,0.4)" : "none",
+            flexShrink: 0,
+          }}
+          role="switch"
+          aria-checked={reactionsEnabled}
+        >
+          <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: reactionsEnabled ? 23 : 3, transition: "left 0.2s ease", boxShadow: "0 1px 4px rgba(0,0,0,0.4)" }} />
+        </button>
+      </div>
+
+      {reactionsEnabled && (
+        <div style={S.textRowLeft}>
+          <label style={S.label}>Reaction Emojis (comma separated)</label>
+          <input
+            type="text"
+            value={reactionsList}
+            onChange={(e) => onReactionsListChange?.(e.target.value)}
+            style={S.textInput}
+            placeholder="👍,👎,🤔,❤️"
+          />
+        </div>
+      )}
+
       {/* ── Radius Selector ────────────────────────────────────────────────────── */}
       <div>
         <label style={S.label}>Corner Radius</label>
@@ -259,21 +308,32 @@ export function TelegramButtonDesigner({
           </div>
 
           {/* Button keyboard */}
-          <div style={S.previewKeyboard}>
-            {fullWidth ? (
-              <div className="tg-btn-preview" style={previewStyle}>
-                {activeBtn === "download" ? downloadButtonText || "⬇️ DOWNLOAD MOD" : websiteButtonText || "🌐 VISIT PAGE"}
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 8 }}>
-                <div className="tg-btn-preview" style={{ ...previewStyle, borderRadius: radius }}>
-                  {downloadButtonText || "⬇️ DOWNLOAD MOD"}
-                </div>
-                <div className="tg-btn-preview" style={{ ...previewStyle, borderRadius: radius }}>
-                  {websiteButtonText || "🌐 VISIT PAGE"}
-                </div>
+          <div style={{ ...S.previewKeyboard, display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+            {reactionsEnabled && reactionsList && (
+              <div style={{ display: "flex", gap: 4 }}>
+                {reactionsList.split(",").map(e => e.trim()).filter(Boolean).map((emoji) => (
+                  <div
+                    key={emoji}
+                    style={{
+                      flex: 1,
+                      padding: "5px 8px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: radius,
+                      color: "rgba(255,255,255,0.8)",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textAlign: "center"
+                    }}
+                  >
+                    {emoji}
+                  </div>
+                ))}
               </div>
             )}
+            <div className="tg-btn-preview" style={{ ...previewStyle, borderRadius: radius, flex: "none", width: "100%" }}>
+              {downloadButtonText || "⬇️ DOWNLOAD NOW"}
+            </div>
           </div>
         </div>
       </div>

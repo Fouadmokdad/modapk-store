@@ -546,6 +546,10 @@ export default function TelegramEnterprisePage() {
                   websiteButtonText={settings.websiteButtonText}
                   onDownloadChange={(v) => updateSetting("downloadButtonText", v)}
                   onWebsiteChange={(v) => updateSetting("websiteButtonText", v)}
+                  reactionsEnabled={settings.reactionsEnabled}
+                  reactionsList={settings.reactionsList}
+                  onReactionsEnabledChange={(v) => updateSetting("reactionsEnabled", v)}
+                  onReactionsListChange={(v) => updateSetting("reactionsList", v)}
                 />
               </div>
             )}
@@ -760,6 +764,8 @@ export default function TelegramEnterprisePage() {
             downloadButtonText={settings.downloadButtonText}
             websiteButtonText={settings.websiteButtonText}
             appImageUrl={previewData.iconUrl || previewData.headerImageUrl}
+            reactionsEnabled={settings.reactionsEnabled}
+            reactionsList={settings.reactionsList}
           />
 
           {/* Test Post Button */}

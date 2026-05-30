@@ -31,6 +31,8 @@ const telegramSettingsSchema = z.object({
   hashtagsTemplate: z.string().nullable().optional().default(""),
   categoryEmojis: z.any().optional(),
   parseMode: z.string().default("HTML"),
+  reactionsEnabled: z.boolean().default(true),
+  reactionsList: z.string().default("👍,👎,🤔,❤️"),
 });
 
 /**

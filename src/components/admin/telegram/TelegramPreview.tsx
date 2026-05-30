@@ -12,6 +12,8 @@ interface Props {
   downloadButtonText: string;
   websiteButtonText: string;
   appImageUrl?: string;
+  reactionsEnabled?: boolean;
+  reactionsList?: string;
 }
 
 type DeviceMode = "android" | "iphone" | "desktop" | "tablet";
@@ -48,6 +50,8 @@ export function TelegramPreview({
   downloadButtonText,
   websiteButtonText,
   appImageUrl,
+  reactionsEnabled = true,
+  reactionsList = "👍,👎,🤔,❤️",
 }: Props) {
   const [device, setDevice] = useState<DeviceMode>("android");
   const [theme, setTheme] = useState<ThemeMode>("dark");
@@ -271,6 +275,8 @@ export function TelegramPreview({
                     subColor={subColor}
                     showForwarded={showForwarded}
                     showReactions={showReactions}
+                    reactionsEnabled={reactionsEnabled}
+                    reactionsList={reactionsList}
                     desktop
                   />
                 </div>
@@ -364,6 +370,8 @@ export function TelegramPreview({
                   subColor={subColor}
                   showForwarded={showForwarded}
                   showReactions={showReactions}
+                  reactionsEnabled={reactionsEnabled}
+                  reactionsList={reactionsList}
                 />
               </div>
 
@@ -392,10 +400,12 @@ export function TelegramPreview({
 function ChatBubble({
   text, downloadBtn, websiteBtn, image, isDark,
   bubbleBg, textColor, subColor, showForwarded, showReactions, desktop = false,
+  reactionsEnabled = true, reactionsList = "👍,👎,🤔,❤️",
 }: {
   text: string; downloadBtn: string; websiteBtn: string;
   image?: string; isDark: boolean; bubbleBg: string; textColor: string;
   subColor: string; showForwarded: boolean; showReactions: boolean; desktop?: boolean;
+  reactionsEnabled?: boolean; reactionsList?: string;
 }) {
   const [pickedReaction, setPickedReaction] = useState<string | null>(null);
   const fontSize = desktop ? 12 : 11;
@@ -433,12 +443,35 @@ function ChatBubble({
       </div>
 
       {/* Inline Keyboard */}
-      <div style={{ display: "flex", gap: 6 }}>
-        <div style={{ flex: 1, padding: desktop ? "8px 10px" : "6px 8px", background: isDark ? "rgba(34,158,217,0.12)" : "rgba(34,158,217,0.08)", border: "1px solid rgba(34,158,217,0.25)", borderRadius: 10, color: "#4fc3f7", fontSize: desktop ? 11 : 9, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>
-          {downloadBtn || "⬇️ DOWNLOAD MOD"}
-        </div>
-        <div style={{ flex: 1, padding: desktop ? "8px 10px" : "6px 8px", background: isDark ? "rgba(34,158,217,0.12)" : "rgba(34,158,217,0.08)", border: "1px solid rgba(34,158,217,0.25)", borderRadius: 10, color: "#4fc3f7", fontSize: desktop ? 11 : 9, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>
-          {websiteBtn || "🌐 VISIT PAGE"}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+        {reactionsEnabled && reactionsList && (
+          <div style={{ display: "flex", gap: 4 }}>
+            {reactionsList.split(",").map(e => e.trim()).filter(Boolean).map((emoji) => (
+              <div
+                key={emoji}
+                style={{
+                  flex: 1,
+                  padding: desktop ? "6px 10px" : "5px 8px",
+                  background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                  border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+                  borderRadius: 10,
+                  color: isDark ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)",
+                  fontSize: desktop ? 11 : 9,
+                  fontWeight: 700,
+                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3
+                }}
+              >
+                {emoji}
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ padding: desktop ? "8px 10px" : "6px 8px", background: isDark ? "rgba(34,158,217,0.12)" : "rgba(34,158,217,0.08)", border: "1px solid rgba(34,158,217,0.25)", borderRadius: 10, color: "#4fc3f7", fontSize: desktop ? 11 : 9, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>
+          {downloadBtn || "⬇️ DOWNLOAD NOW"}
         </div>
       </div>
 

@@ -43,6 +43,8 @@ export interface TelegramTemplateSettings {
   hashtagsTemplate: string | null;
   categoryEmojis: any; // Record<string, string> JSON
   parseMode: string;
+  reactionsEnabled?: boolean;
+  reactionsList?: string;
 }
 
 export const DEFAULT_TEMPLATE = `<b>🔥 {title}</b>
@@ -90,7 +92,9 @@ export const DEFAULT_TEMPLATE_SETTINGS: TelegramTemplateSettings = {
     "Entertainment": "🍿",
     "Communication": "💬"
   },
-  parseMode: "HTML"
+  parseMode: "HTML",
+  reactionsEnabled: true,
+  reactionsList: "👍,👎,🤔,❤️"
 };
 
 /**
@@ -356,19 +360,37 @@ export function generateTelegramButtons(
     siteUrl?: string;
     downloadButtonText?: string;
     websiteButtonText?: string;
+    reactionsEnabled?: boolean;
+    reactionsList?: string;
   } | null | undefined
 ) {
   const sUrl = settings?.siteUrl || "http://localhost:3000";
   const safeSiteUrl = String(sUrl).replace(/\/+$/, "");
-  const downloadUrl = `${safeSiteUrl}/download/${slug || ""}`;
-  const websiteUrl = `${safeSiteUrl}/apps/${slug || ""}`;
+  const appDetailsUrl = `${safeSiteUrl}/apps/${slug || ""}`;
+
+  const keyboard: any[] = [];
+
+  // Add reactions if enabled
+  const reactionsEnabled = settings?.reactionsEnabled ?? true;
+  const reactionsList = settings?.reactionsList || "👍,👎,🤔,❤️";
+  if (reactionsEnabled && reactionsList.trim().length > 0) {
+    const emojis = reactionsList.split(",").map(e => e.trim()).filter(Boolean);
+    if (emojis.length > 0) {
+      keyboard.push(
+        emojis.map(emoji => ({
+          text: emoji,
+          callback_data: `react:${emoji}`
+        }))
+      );
+    }
+  }
+
+  // Add single download button row pointing to app details page
+  keyboard.push([
+    { text: settings?.downloadButtonText || "⬇️ DOWNLOAD NOW", url: appDetailsUrl }
+  ]);
 
   return {
-    inline_keyboard: [
-      [
-        { text: settings?.downloadButtonText || "⬇️ DOWNLOAD MOD", url: downloadUrl },
-        { text: settings?.websiteButtonText || "🌐 VISIT PAGE", url: websiteUrl }
-      ]
-    ]
+    inline_keyboard: keyboard
   };
 }
